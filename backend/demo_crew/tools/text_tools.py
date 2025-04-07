@@ -4,7 +4,7 @@ import urllib.request
 import json
 from typing import Any, Dict, List, Optional
 from langchain.tools import BaseTool
-import pytesseract
+from paddleocr import PaddleOCR
 from PIL import Image
 import requests
 from langchain_community.vectorstores import FAISS
@@ -25,13 +25,15 @@ class OCRTool(BaseTool):
     def __init__(self):
         """Initialize the OCR tool."""
         super().__init__()
+        # Initialize PaddleOCR with English as default language
+        self.ocr = PaddleOCR(use_angle_cls=True, lang='en')
     
-    def _run(self, image_path: str, lang: str = "eng") -> Dict[str, Any]:
+    def _run(self, image_path: str, lang: str = "en") -> Dict[str, Any]:
         """Extract text from the provided image.
         
         Args:
             image_path: Path to the image file
-            lang: Language to use for OCR (default: 'eng')
+            lang: Language to use for OCR (default: 'en')
             
         Returns:
             Dictionary containing extracted text
@@ -40,34 +42,44 @@ class OCRTool(BaseTool):
             return {"error": f"Image file not found at path: {image_path}"}
         
         try:
+            # Update OCR language if different from current
+            if lang != self.ocr.lang:
+                self.ocr = PaddleOCR(use_angle_cls=True, lang=lang)
+            
             # Open the image
             image = Image.open(image_path)
             
-            # Perform OCR
-            text = pytesseract.image_to_string(image, lang=lang)
-            
-            # Get more detailed data with bounding boxes
-            data = pytesseract.image_to_data(image, lang=lang, output_type=pytesseract.Output.DICT)
+            # Perform OCR with PaddleOCR
+            result = self.ocr.ocr(image_path, cls=True)
             
             # Process and organize OCR results
+            full_text = ""
             words = []
-            for i in range(len(data['text'])):
-                if data['text'][i].strip():
+            
+            if result:
+                for idx, line in enumerate(result[0]):
+                    # Each line contains coordinates and text with confidence
+                    coords, (text, conf) = line
+                    full_text += text + " "
+                    
+                    # Extract bounding box coordinates
+                    bbox = {
+                        'x': int(min(coords[0][0], coords[3][0])),
+                        'y': int(min(coords[0][1], coords[1][1])),
+                        'w': int(abs(coords[1][0] - coords[0][0])),
+                        'h': int(abs(coords[2][1] - coords[0][1]))
+                    }
+                    
                     words.append({
-                        'text': data['text'][i],
-                        'conf': data['conf'][i],
-                        'bbox': {
-                            'x': data['left'][i],
-                            'y': data['top'][i],
-                            'w': data['width'][i],
-                            'h': data['height'][i]
-                        },
-                        'line_num': data['line_num'][i],
-                        'block_num': data['block_num'][i]
+                        'text': text,
+                        'conf': float(conf),
+                        'bbox': bbox,
+                        'line_num': idx,
+                        'block_num': 0  # PaddleOCR doesn't provide block info
                     })
             
             return {
-                "full_text": text,
+                "full_text": full_text.strip(),
                 "words": words,
                 "language": lang
             }

@@ -4,16 +4,16 @@ import warnings
 import os
 from datetime import datetime
 
-from demo_crew.crew import DocumentCrew
+from demo_crew.document_graph import DocumentGraph
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
 # This main file is intended to be a way for you to run your
-# crew locally, so refrain from adding unnecessary logic into this file.
+# document processing workflow locally.
 
 def run():
     """
-    Run the document processing crew.
+    Run the document processing workflow using LangGraph.
     """
     # Create data directory if it doesn't exist
     data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -33,56 +33,20 @@ def run():
     }
     
     try:
-        document_crew = DocumentCrew()
-        crew = document_crew.create_crew()
-        crew.kickoff(inputs=inputs)
+        # Initialize the document graph and run the workflow
+        document_graph = DocumentGraph()
+        result = document_graph.run(inputs)
+        
+        print("\n=== Document Processing Complete ===")
+        print(f"Text Processing Result: {result.get('text_processing_result', 'N/A')[:100]}...")
+        print(f"Image Processing Result: {result.get('image_processing_result', 'N/A')[:100]}...")
+        print(f"Video Processing Result: {result.get('video_processing_result', 'N/A')[:100]}...")
+        print(f"Audio Processing Result: {result.get('audio_processing_result', 'N/A')[:100]}...")
+        print(f"Output saved to: processed_data.json")
+        return result
     except Exception as e:
-        raise Exception(f"An error occurred while running the crew: {e}")
+        raise Exception(f"An error occurred while running the workflow: {e}")
 
 
-def train():
-    """
-    Train the crew for a given number of iterations.
-    """
-    inputs = {
-        'documents_dir': 'data/documents',
-        'images_dir': 'data/images',
-        'audio_dir': 'data/audio',
-        'video_dir': 'data/video',
-        'process_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    try:
-        document_crew = DocumentCrew()
-        crew = document_crew.create_crew()
-        crew.train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
-    except Exception as e:
-        raise Exception(f"An error occurred while training the crew: {e}")
-
-def replay():
-    """
-    Replay the crew execution from a specific task.
-    """
-    try:
-        document_crew = DocumentCrew()
-        crew = document_crew.create_crew()
-        crew.replay(task_id=sys.argv[1])
-    except Exception as e:
-        raise Exception(f"An error occurred while replaying the crew: {e}")
-
-def test():
-    """
-    Test the crew execution and returns the results.
-    """
-    inputs = {
-        'documents_dir': 'data/documents',
-        'images_dir': 'data/images',
-        'audio_dir': 'data/audio',
-        'video_dir': 'data/video',
-        'process_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    try:
-        document_crew = DocumentCrew()
-        crew = document_crew.create_crew()
-        crew.test(n_iterations=int(sys.argv[1]), openai_model_name=sys.argv[2], inputs=inputs)
-    except Exception as e:
-        raise Exception(f"An error occurred while testing the crew: {e}")
+if __name__ == "__main__":
+    run()
