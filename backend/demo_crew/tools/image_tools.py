@@ -1,6 +1,6 @@
 import os
 from typing import Any, Dict, List, Optional
-from crewai.tools import BaseTool
+from langchain.tools import BaseTool
 from PIL import Image
 import numpy as np
 import cv2
@@ -210,4 +210,4 @@ class ImageAnalysisTool(BaseTool):
             "resolution": image.shape[0] * image.shape[1]
         }
         
-        return features 
+        return features

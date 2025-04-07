@@ -1,4 +1,6 @@
-from crewai.tools import BaseTool
+# Instead of importing BaseTool directly, use langchain's BaseTool
+# CrewAI 0.11.0 uses langchain's tools architecture
+from langchain.tools import BaseTool
 from typing import Type
 from pydantic import BaseModel, Field
 

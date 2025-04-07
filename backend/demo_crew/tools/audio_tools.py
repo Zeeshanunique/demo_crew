@@ -1,6 +1,6 @@
 import os
 from typing import Any, Dict
-from crewai.tools import BaseTool
+from langchain.tools import BaseTool
 from faster_whisper import WhisperModel
 
 class WhisperTranscriptionTool(BaseTool):

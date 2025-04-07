@@ -3,12 +3,12 @@ import re
 import urllib.request
 import json
 from typing import Any, Dict, List, Optional
-from crewai.tools import BaseTool
+from langchain.tools import BaseTool
 import pytesseract
 from PIL import Image
 import requests
 from langchain_community.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import (
     PyPDFLoader, 
     TextLoader, 
@@ -245,4 +245,4 @@ class DocumentRAGTool(BaseTool):
         if not self.chunks:
             return
         
-        self.index = FAISS.from_documents(self.chunks, self.embeddings) 
+        self.index = FAISS.from_documents(self.chunks, self.embeddings)

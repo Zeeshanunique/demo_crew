@@ -4,7 +4,7 @@ This allows the core app to run even if some tool dependencies aren't installed.
 """
 
 from typing import List, Optional, Any, Dict, Callable
-from crewai.tools import BaseTool
+from langchain.tools import BaseTool
 
 
 class FallbackTool(BaseTool):
