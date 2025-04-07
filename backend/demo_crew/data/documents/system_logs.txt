@@ -1,0 +1,47 @@
+===== SECURITY ACCESS LOGS: APRIL 14-15, 2023 =====
+FORMAT: TIMESTAMP | USER | ACTION | RESOURCE | STATUS | IP ADDRESS
+
+2023-04-14 20:12:45 | sarah.chen | LOGIN | Main System | SUCCESS | 10.42.16.98
+2023-04-14 20:15:21 | sarah.chen | ACCESS | Project Management Portal | SUCCESS | 10.42.16.98
+2023-04-14 20:37:52 | sarah.chen | LOGOUT | Main System | SUCCESS | 10.42.16.98
+
+2023-04-14 21:05:12 | maya.williams | LOGIN | Main System | SUCCESS | 10.42.16.105
+2023-04-14 21:07:34 | maya.williams | ACCESS | Network Configuration | SUCCESS | 10.42.16.105
+2023-04-14 21:19:28 | maya.williams | ACCESS | Project Nexus - Network Documentation | SUCCESS | 10.42.16.105
+2023-04-14 21:42:17 | maya.williams | LOGOUT | Main System | SUCCESS | 10.42.16.105
+
+2023-04-14 22:01:45 | alex.rodriguez | LOGIN | Main System | SUCCESS | 10.42.16.112
+2023-04-14 22:04:22 | alex.rodriguez | ACCESS | Project Nexus - QKD Documentation | SUCCESS | 10.42.16.112
+2023-04-14 22:35:19 | alex.rodriguez | LOGOUT | Main System | SUCCESS | 10.42.16.112
+
+2023-04-14 22:47:03 | thomas.greene | LOGIN | Main System | SUCCESS | 10.42.16.119
+2023-04-14 22:50:41 | thomas.greene | ACCESS | Financial Reports | SUCCESS | 10.42.16.119
+2023-04-14 22:57:12 | thomas.greene | ACCESS | Project Nexus - Budget Documentation | SUCCESS | 10.42.16.119
+2023-04-14 23:22:05 | thomas.greene | LOGOUT | Main System | SUCCESS | 10.42.16.119
+
+2023-04-14 23:41:19 | admin | LOGIN | Main System | SUCCESS | 10.42.16.150
+2023-04-14 23:42:38 | admin | ELEVATE | System Privileges | SUCCESS | 10.42.16.150
+2023-04-14 23:43:51 | admin | ACCESS | Project Nexus - Master Repository | SUCCESS | 10.42.16.150
+2023-04-14 23:44:27 | admin | DOWNLOAD | Project Nexus - QKD-TS-2023 | SUCCESS | 10.42.16.150
+2023-04-14 23:44:53 | admin | DOWNLOAD | Project Nexus - NADD-v2.3 | SUCCESS | 10.42.16.150
+2023-04-14 23:45:21 | admin | DOWNLOAD | Project Nexus - ITM-Q2-2023 | SUCCESS | 10.42.16.150
+2023-04-14 23:45:49 | admin | DOWNLOAD | Project Nexus - BAS-2023-Q2Q4 | SUCCESS | 10.42.16.150
+2023-04-14 23:46:38 | admin | DELETE | Project Nexus - Master Repository | FAILED | 10.42.16.150
+2023-04-14 23:47:12 | admin | LOGOUT | Main System | SUCCESS | 10.42.16.150
+
+===== VPN ACCESS LOGS: APRIL 14-15, 2023 =====
+FORMAT: TIMESTAMP | USER | ACTION | DURATION | IP ADDRESS | LOCATION
+
+2023-04-14 19:30:22 | sarah.chen | CONNECT | 1h45m | A8:F2:74:B3:41:9C | HEADQUARTERS
+2023-04-14 20:32:15 | maya.williams | CONNECT | 1h20m | 4D:E2:12:F8:A9:C7 | HEADQUARTERS
+2023-04-14 21:15:47 | alex.rodriguez | CONNECT | 1h40m | 7A:91:B6:24:C5:D8 | REMOTE - LOS ANGELES
+2023-04-14 22:05:32 | thomas.greene | CONNECT | 1h30m | 3F:8E:9A:D1:57:B2 | REMOTE - CHICAGO
+2023-04-14 23:40:03 | unknown | CONNECT | 0h15m | 2C:F5:E3:A7:B1:D9 | REMOTE - NEW YORK
+
+===== EMAIL GATEWAY LOGS: APRIL 14, 2023 =====
+FORMAT: TIMESTAMP | SENDER | RECIPIENT | SUBJECT | ATTACHMENTS | SIZE
+
+2023-04-14 17:22:45 | alex.rodriguez@quantumsphere.com | personal.email983@protonmail.com | Research Notes | 1 | 2.3MB
+2023-04-14 18:47:12 | thomas.greene@quantumsphere.com | finance@quantumsphere.com | Q2 Projections | 1 | 4.7MB
+2023-04-14 21:05:33 | maya.williams@quantumsphere.com | secops@quantumsphere.com | Firewall Update | 0 | 8KB
+2023-04-14 22:19:28 | thomas.greene@quantumsphere.com | personal.archive@gmail.com | Work Backup | 2 | 7.1MB 

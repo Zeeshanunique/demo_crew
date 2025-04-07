@@ -1,0 +1,32 @@
+process_text_data:
+  description: >
+    Process the uploaded text-based file (PDF, CSV, plain text, or web-sourced text) and convert it into structured JSON.
+    Identify headers, key-value pairs, tables, and relevant information regardless of format type.
+  expected_output: >
+    A JSON object representing all structured data extracted from the file.
+    Ensure consistency, nested structure if needed, and clean formatting.
+  agent: text_data_specialist
+
+process_image_data:
+  description: >
+    Perform OCR on the uploaded image. Extract all visible text and analyze layout or patterns.
+    Convert any found information into a structured JSON format.
+  expected_output: >
+    A JSON object representing all extracted data from the image (forms, scanned documents, notes, etc.)
+  agent: image_ocr_analyst
+
+process_video_data:
+  description: >
+    Transcribe and analyze the video using Whisper. Extract speech along with timestamps.
+    Convert the narrative into a structured JSON format highlighting speakers, actions, or sections.
+  expected_output: >
+    A structured JSON representation of the spoken content with timestamps, segments, or labeled sections.
+  agent: video_transcriber
+
+process_audio_data:
+  description: >
+    Use Whisper to transcribe audio into text and analyze the speech for intent and meaning.
+    Format the result into structured JSON capturing key statements, timestamps, and speaker segments.
+  expected_output: >
+    A JSON output of the transcribed and structured audio content.
+  agent: audio_transcriber

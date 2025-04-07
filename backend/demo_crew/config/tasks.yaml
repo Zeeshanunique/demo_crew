@@ -1,0 +1,63 @@
+research_task:
+  description: >
+    Conduct a thorough research about {topic}
+    Make sure you find any interesting and relevant information given
+    the current year is {current_year}.
+  expected_output: >
+    A list with 10 bullet points of the most relevant information about {topic}
+  agent: researcher
+
+reporting_task:
+  description: >
+    Review the context you got and expand each topic into a full section for a report.
+    Make sure the report is detailed and contains any and all relevant information.
+  expected_output: >
+    A fully fledged report with the main topics, each with a full section of information.
+    Formatted as markdown without '```'
+  agent: reporting_analyst
+
+evidence_analysis:
+  description: >
+    Analyze the provided evidence (audio, video, images, and text) using specialized tools.
+    For audio files, use Whisper to transcribe and analyze content.
+    For video files, use PyDLP and Whisper to extract valuable information.
+    For images, analyze visual details and use OCR to extract any text.
+    For text documents, identify key information and patterns.
+    Create a detailed analysis report highlighting all significant findings.
+  expected_output: >
+    A comprehensive analysis of all evidence types, including transcriptions, extracted information,
+    and key findings from each piece of evidence. Include timestamps for audio/video evidence
+    and highlight any suspicious or noteworthy elements.
+  agent: forensic_analyst
+
+background_research:
+  description: >
+    Research all related information to the mystery using web searches, document analysis, and databases.
+    Look for historical patterns, similar cases, and contextual information that could provide insight.
+    Create connections between seemingly unrelated facts and identify possible motivations.
+  expected_output: >
+    A detailed research report with historical context, related cases, background information on 
+    key elements of the mystery, and a list of potential leads to follow based on research findings.
+  agent: researcher
+
+psychological_profile:
+  description: >
+    Create psychological profiles of key subjects based on their actions, statements, and behavior patterns.
+    Analyze potential motives, identify likely behavioral characteristics, and predict possible future actions.
+    Distinguish between genuine and deceptive statements in testimonies and evidence.
+  expected_output: >
+    In-depth psychological profiles of all key subjects, analysis of truthfulness in statements,
+    assessment of likely motives, and behavioral predictions that could help narrow down suspects.
+  agent: profiler
+
+mystery_solving:
+  description: >
+    Review all evidence analysis, research reports, and psychological profiles to solve the mystery.
+    Connect all the dots, identify inconsistencies, and draw logical conclusions about what happened.
+    Create a comprehensive case report explaining the solution to the mystery with supporting evidence.
+  expected_output: >
+    A complete solution to the mystery that explains what happened, who was involved, and why.
+    Include a timeline of events, explanation of motives, and all supporting evidence for your conclusions.
+    Formatted as markdown without '```'
+  agent: detective
+  dependencies: [evidence_analysis, background_research, psychological_profile]
