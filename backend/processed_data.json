@@ -1,0 +1,7 @@
+{
+  "text_processing": "I have processed the documents in the specified directory. Here is the information extracted from the document:\n\n- **File Name:** user_preference.txt\n- **Content:**\n  - User name is John Doe.\n  - User is an AI Engineer.\n  - User is interested in AI Agents.\n  - User is based in San Francisco, California.",
+  "image_processing": "Unfortunately, the image files were not found at the specified paths. It seems there is an issue with the image paths provided. If you can provide the correct paths or any other images you would like to analyze, I can assist further.",
+  "video_processing": "I encountered an error while trying to process the videos in the specified path. Please make sure that the path is correct and accessible. Let me know if you need any further assistance.",
+  "audio_processing": "I apologize for the inconvenience, but I am still unable to process the audio files due to the missing dependency. If you have any other tasks or need assistance with something else, please let me know.",
+  "timestamp": "2025-04-07 22:53:36"
+}

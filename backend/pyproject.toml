@@ -11,6 +11,7 @@ dependencies = [
     "langchain-openai>=0.0.2",
     "pyyaml>=6.0.1",
     "python-dotenv>=1.0.0",
+    "faiss-cpu>=1.7.4",  # Added faiss-cpu dependency
     # Minimal dependencies required for basic functionality
 ]
 
@@ -22,6 +23,7 @@ tools = [
     "paddleocr>=2.6.0",
     "paddlepaddle>=2.5.0",
     "openai-whisper>=20240930",  # Changed from faster-whisper to openai-whisper
+    "faiss-cpu>=1.7.4",  # Added here as well for good measure
 ]
 
 [project.scripts]

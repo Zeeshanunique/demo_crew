@@ -6,7 +6,7 @@ This module replaces the previous CrewAI implementation with a LangGraph workflo
 import os
 import yaml
 from typing import Dict, List, Any
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.tools import Tool
@@ -64,102 +64,73 @@ class DocumentGraph:
             return yaml.safe_load(file)
 
     def _create_agent_executors(self) -> Dict[str, AgentExecutor]:
-        """Create LangChain agent executors for each role"""
-        agent_executors = {}
+        """Create agent executors for different document types."""
+        # Initialize model and tools
+        llm = ChatOpenAI(temperature=0)
         
-        # Text Data Specialist
+        # Get tools
         text_tools = [get_document_rag_tool(), get_web_search_tool()]
-        text_specialist_prompt = ChatPromptTemplate.from_template(
-            """You are a Text Data Specialist. {agent_config}
-            
-            Your task is to: {task_config}
-            
-            Use the provided tools to accomplish your task.
-            
-            {input}
-            """
-        )
-        text_specialist_agent = create_openai_tools_agent(
-            self.model,
-            text_tools,
-            text_specialist_prompt
-        )
-        agent_executors["text_data_specialist"] = AgentExecutor(
-            agent=text_specialist_agent,
-            tools=text_tools,
-            verbose=True
-        )
-        
-        # Image OCR Analyst
         image_tools = [get_ocr_tool(), get_image_analysis_tool()]
-        image_analyst_prompt = ChatPromptTemplate.from_template(
-            """You are an OCR Image Analyst. {agent_config}
-            
-            Your task is to: {task_config}
-            
-            Use the provided tools to accomplish your task.
-            
-            {input}
-            """
-        )
-        image_analyst_agent = create_openai_tools_agent(
-            self.model,
-            image_tools,
-            image_analyst_prompt
-        )
-        agent_executors["image_ocr_analyst"] = AgentExecutor(
-            agent=image_analyst_agent,
-            tools=image_tools,
-            verbose=True
-        )
-        
-        # Video Transcriber
         video_tools = [get_video_tool()]
-        video_specialist_prompt = ChatPromptTemplate.from_template(
-            """You are a Video-to-Text Transcriber. {agent_config}
-            
-            Your task is to: {task_config}
-            
-            Use the provided tools to accomplish your task.
-            
-            {input}
-            """
-        )
-        video_specialist_agent = create_openai_tools_agent(
-            self.model,
-            video_tools,
-            video_specialist_prompt
-        )
-        agent_executors["video_transcriber"] = AgentExecutor(
-            agent=video_specialist_agent,
-            tools=video_tools,
-            verbose=True
-        )
-        
-        # Audio Transcriber
         audio_tools = [get_whisper_transcription_tool()]
-        audio_specialist_prompt = ChatPromptTemplate.from_template(
-            """You are an Audio Transcriber. {agent_config}
-            
-            Your task is to: {task_config}
-            
-            Use the provided tools to accomplish your task.
-            
-            {input}
-            """
-        )
-        audio_specialist_agent = create_openai_tools_agent(
-            self.model,
-            audio_tools,
-            audio_specialist_prompt
-        )
-        agent_executors["audio_transcriber"] = AgentExecutor(
-            agent=audio_specialist_agent,
-            tools=audio_tools,
-            verbose=True
+        
+        # Create prompts for each specialist agent
+        text_specialist_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a text analysis specialist. You can extract and analyze information from text documents."),
+            ("user", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")  # Add this line for agent_scratchpad
+        ])
+        
+        image_specialist_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are an image analysis specialist. You can extract information from images using OCR and other techniques."),
+            ("user", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")  # Add this line for agent_scratchpad
+        ])
+        
+        video_specialist_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a video analysis specialist. You can extract information from videos."),
+            ("user", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")  # Add this line for agent_scratchpad
+        ])
+        
+        audio_specialist_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are an audio analysis specialist. You can transcribe and extract information from audio files."),
+            ("user", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")  # Add this line for agent_scratchpad
+        ])
+        
+        # Create the OpenAI tools agents
+        text_specialist_agent = create_openai_tools_agent(
+            llm=llm,
+            tools=text_tools,
+            prompt=text_specialist_prompt
         )
         
-        return agent_executors
+        image_specialist_agent = create_openai_tools_agent(
+            llm=llm,
+            tools=image_tools,
+            prompt=image_specialist_prompt
+        )
+        
+        video_specialist_agent = create_openai_tools_agent(
+            llm=llm,
+            tools=video_tools,
+            prompt=video_specialist_prompt
+        )
+        
+        audio_specialist_agent = create_openai_tools_agent(
+            llm=llm,
+            tools=audio_tools,
+            prompt=audio_specialist_prompt
+        )
+        
+        # Create agent executors
+        return {
+            "text": AgentExecutor(agent=text_specialist_agent, tools=text_tools),
+            "image": AgentExecutor(agent=image_specialist_agent, tools=image_tools),
+            "video": AgentExecutor(agent=video_specialist_agent, tools=video_tools),
+            "audio": AgentExecutor(agent=audio_specialist_agent, tools=audio_tools)
+        }
     
     def _text_data_specialist_node(self, state: Dict) -> Dict:
         """Text Data Specialist node in the workflow"""
@@ -175,7 +146,7 @@ class DocumentGraph:
         }
         
         # Run the agent
-        result = self.agent_executors["text_data_specialist"].invoke(agent_inputs)
+        result = self.agent_executors["text"].invoke(agent_inputs)
         
         # Update state with result
         new_state = state.copy()
@@ -196,7 +167,7 @@ class DocumentGraph:
         }
         
         # Run the agent
-        result = self.agent_executors["image_ocr_analyst"].invoke(agent_inputs)
+        result = self.agent_executors["image"].invoke(agent_inputs)
         
         # Update state with result
         new_state = state.copy()
@@ -217,7 +188,7 @@ class DocumentGraph:
         }
         
         # Run the agent
-        result = self.agent_executors["video_transcriber"].invoke(agent_inputs)
+        result = self.agent_executors["video"].invoke(agent_inputs)
         
         # Update state with result
         new_state = state.copy()
@@ -238,7 +209,7 @@ class DocumentGraph:
         }
         
         # Run the agent
-        result = self.agent_executors["audio_transcriber"].invoke(agent_inputs)
+        result = self.agent_executors["audio"].invoke(agent_inputs)
         
         # Update state with result
         new_state = state.copy()

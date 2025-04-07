@@ -5,29 +5,37 @@ This allows the core app to run even if some tool dependencies aren't installed.
 
 from typing import List, Optional, Any, Dict, Callable
 from langchain.tools import BaseTool
+from pydantic import BaseModel, Field
 
 
 class FallbackTool(BaseTool):
-    """A tool that provides a fallback when the required dependencies aren't installed."""
+    """A fallback tool for when a required tool is not available due to missing dependencies."""
+    
+    name: str = "FallbackTool"
+    description: str = "A fallback tool that reports missing dependencies"
+    missing_dependency: str = "unknown"
     
     def __init__(self, name: str, description: str, missing_dependency: str):
         """Initialize the fallback tool.
         
         Args:
-            name: Name of the tool
-            description: Description of the tool
+            name: Tool name
+            description: Tool description
             missing_dependency: Name of the missing dependency
         """
-        self.name = name
-        self.description = description
+        # Call super() with proper parameters for Pydantic validation
+        super().__init__(name=name, description=description)
         self.missing_dependency = missing_dependency
-        super().__init__()
     
-    def _run(self, **kwargs) -> Dict[str, Any]:
-        """Provide information about the missing dependency."""
+    def _run(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        """Return an error message about the missing dependency.
+        
+        Returns:
+            Dictionary with error message
+        """
         return {
-            "error": f"Tool '{self.name}' cannot be used because dependency '{self.missing_dependency}' is not installed.",
-            "solution": f"Install the optional dependencies with: pip install demo_crew[tools]"
+            "error": f"Missing dependency: {self.missing_dependency}",
+            "message": f"The {self.name} is not available because the required dependency '{self.missing_dependency}' is not installed."
         }
 
 
@@ -84,15 +92,28 @@ def get_image_analysis_tool() -> BaseTool:
 
 
 def get_whisper_transcription_tool() -> BaseTool:
-    """Get the whisper transcription tool if available, or a fallback."""
+    """Get the Whisper transcription tool if available, or a fallback."""
     try:
         from .audio_tools import WhisperTranscriptionTool
-        return WhisperTranscriptionTool()
+        return WhisperTranscriptionTool(model_size="base")
     except ImportError:
         return FallbackTool(
             name="WhisperTranscriptionTool",
             description="Transcribes audio files",
-            missing_dependency="openai-whisper"
+            missing_dependency="whisper"
+        )
+
+
+def get_audio_analysis_tool() -> BaseTool:
+    """Get the audio analysis tool if available, or a fallback."""
+    try:
+        from .audio_tools import AudioAnalysisTool
+        return AudioAnalysisTool()
+    except ImportError:
+        return FallbackTool(
+            name="AudioAnalysisTool",
+            description="Analyzes audio files",
+            missing_dependency="ffprobe"
         )
 
 

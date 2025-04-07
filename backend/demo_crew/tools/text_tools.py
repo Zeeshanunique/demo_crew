@@ -21,6 +21,7 @@ class OCRTool(BaseTool):
     
     name: str = "OCRTool"
     description: str = "Extracts text from images using Optical Character Recognition"
+    ocr: Any = None  # Add this line to declare the ocr field
     
     def __init__(self):
         """Initialize the OCR tool."""
@@ -87,77 +88,16 @@ class OCRTool(BaseTool):
             return {"error": f"Error performing OCR: {str(e)}"}
 
 
-class WebSearchTool(BaseTool):
-    """A tool for performing web searches and retrieving information."""
-    
-    name: str = "WebSearchTool"
-    description: str = "Searches the web for information on a given query"
-    
-    def __init__(self, max_results: int = 10, api_key: Optional[str] = None):
-        """Initialize the web search tool.
-        
-        Args:
-            max_results: Maximum number of search results to return
-            api_key: Optional API key for search service
-        """
-        super().__init__()
-        self.max_results = max_results
-        self.api_key = api_key or os.environ.get("SEARCH_API_KEY")
-    
-    def _run(self, query: str, num_results: Optional[int] = None) -> Dict[str, Any]:
-        """Perform a web search for the given query.
-        
-        Args:
-            query: Search query
-            num_results: Number of results to return (overrides max_results)
-            
-        Returns:
-            Dictionary containing search results
-        """
-        try:
-            # For demo purposes, we're using a mock search result
-            # In a real implementation, you would connect to a search API
-            
-            # Mock search for demonstration
-            results = self._mock_search_results(query, num_results or self.max_results)
-            
-            return {
-                "query": query,
-                "results": results
-            }
-        except Exception as e:
-            return {"error": f"Error performing web search: {str(e)}"}
-    
-    def _mock_search_results(self, query: str, num_results: int) -> List[Dict[str, str]]:
-        """Generate mock search results for demonstration purposes.
-        
-        Args:
-            query: Search query
-            num_results: Number of results to return
-            
-        Returns:
-            List of dictionaries containing mock search results
-        """
-        # In a real implementation, this would call a search API
-        results = []
-        
-        for i in range(min(num_results, 5)):
-            results.append({
-                "title": f"Search result {i+1} for: {query}",
-                "link": f"https://example.com/result{i+1}",
-                "snippet": f"This is a mock search result snippet for the query '{query}'. It contains some sample text that might be found in a real search result.",
-                "source": "mock_search_engine"
-            })
-        
-        return results
-
-
 class DocumentRAGTool(BaseTool):
     """A tool for searching and retrieving information from documents using RAG."""
     
     name: str = "DocumentRAGTool"
     description: str = "Searches through documents to find relevant information using retrieval-augmented generation"
-    documents_dir: str = "knowledge"  # Added this line to properly define the field
+    documents_dir: str = "knowledge"
+    index: Optional[Any] = None
+    embeddings: Any = None
+    chunks: List = []
+    source_documents: Dict = {}
     
     def __init__(self, documents_dir: str = "knowledge"):
         """Initialize the document RAG tool.
@@ -172,90 +112,198 @@ class DocumentRAGTool(BaseTool):
         self.chunks = []
         self.source_documents = {}
     
-    def _run(self, 
-             query: str, 
-             reload_index: bool = False, 
-             k: int = 5) -> Dict[str, Any]:
-        """Search for information related to the query in the indexed documents.
+    def _run(self, query: str, top_k: int = 5) -> Dict[str, Any]:
+        """Search for information in the indexed documents.
         
         Args:
-            query: Search query
-            reload_index: Whether to reload the document index
-            k: Number of results to return
+            query: The search query
+            top_k: Number of top results to return
             
         Returns:
             Dictionary containing search results
         """
+        # Ensure index is built
+        if not self.index:
+            self._build_index()
+        
         try:
-            # Load the index if it doesn't exist or reload is requested
-            if self.index is None or reload_index:
-                self._load_documents()
-                self._create_index()
-            
             # Search the index
-            if not self.chunks:
-                return {"error": "No documents have been indexed"}
+            docs_and_scores = self.index.similarity_search_with_score(query, k=top_k)
             
-            documents = self.index.similarity_search(query, k=k)
-            
-            # Format results
             results = []
-            for doc in documents:
-                source_file = self.source_documents.get(doc.metadata.get('source', ''), 'Unknown')
+            for doc, score in docs_and_scores:
+                # Get source info
+                source = self.source_documents.get(doc.metadata.get('source', ''), 'Unknown')
+                
                 results.append({
-                    "content": doc.page_content,
-                    "source": source_file,
-                    "page": doc.metadata.get('page', None),
-                    "metadata": doc.metadata
+                    'content': doc.page_content,
+                    'metadata': doc.metadata,
+                    'score': float(score),
+                    'source': source
                 })
-            
+                
             return {
-                "query": query,
-                "results": results
+                'query': query,
+                'results': results
             }
         except Exception as e:
-            return {"error": f"Error searching documents: {str(e)}"}
+            return {'error': f"Error searching documents: {str(e)}"}
     
-    def _load_documents(self) -> None:
-        """Load documents from the documents directory."""
-        self.chunks = []
-        self.source_documents = {}
-        
-        if not os.path.exists(self.documents_dir):
-            return
-        
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-        
-        for root, _, files in os.walk(self.documents_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
+    def _build_index(self) -> None:
+        """Build a searchable index from documents."""
+        try:
+            if not os.path.exists(self.documents_dir):
+                raise FileNotFoundError(f"Documents directory not found: {self.documents_dir}")
+            
+            documents = []
+            
+            # Process different file types
+            for file_path in os.listdir(self.documents_dir):
+                full_path = os.path.join(self.documents_dir, file_path)
+                
+                if not os.path.isfile(full_path):
+                    continue
+                
                 try:
-                    # Load document based on file extension
-                    if file.endswith('.pdf'):
-                        loader = PyPDFLoader(file_path)
-                        documents = loader.load()
-                    elif file.endswith('.docx'):
-                        loader = Docx2txtLoader(file_path)
-                        documents = loader.load()
-                    elif file.endswith('.txt'):
-                        loader = TextLoader(file_path)
-                        documents = loader.load()
+                    # Load documents based on file extension
+                    if file_path.lower().endswith('.pdf'):
+                        loader = PyPDFLoader(full_path)
+                        docs = loader.load()
+                    elif file_path.lower().endswith('.txt'):
+                        loader = TextLoader(full_path)
+                        docs = loader.load()
+                    elif file_path.lower().endswith(('.docx', '.doc')):
+                        loader = Docx2txtLoader(full_path)
+                        docs = loader.load()
                     else:
+                        # Skip unsupported file types
                         continue
                     
-                    # Split documents into chunks
-                    chunks = text_splitter.split_documents(documents)
-                    self.chunks.extend(chunks)
-                    self.source_documents[file_path] = file
+                    # Store source document info
+                    self.source_documents[full_path] = {
+                        'filename': file_path,
+                        'path': full_path,
+                        'type': file_path.split('.')[-1].lower()
+                    }
+                    
+                    documents.extend(docs)
                 except Exception as e:
-                    print(f"Error processing {file_path}: {e}")
-    
-    def _create_index(self) -> None:
-        """Create a vector index from the document chunks."""
-        if not self.chunks:
-            return
+                    print(f"Error loading document {file_path}: {e}")
+            
+            if not documents:
+                print("No documents found or loaded")
+                return
+            
+            # Split documents into chunks
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+            self.chunks = text_splitter.split_documents(documents)
+            
+            # Create a vector index
+            try:
+                from langchain_community.vectorstores import FAISS
+                self.index = FAISS.from_documents(self.chunks, self.embeddings)
+                print(f"Successfully indexed {len(self.chunks)} chunks from {len(self.source_documents)} documents")
+            except ImportError as e:
+                print(f"Error importing FAISS: {e}. Please install with 'pip install faiss-cpu'")
+                # Fall back to a simple in-memory search
+                self._create_simple_index()
+                
+        except Exception as e:
+            print(f"Error building document index: {e}")
+
+    def _create_simple_index(self):
+        """Create a simple in-memory index when FAISS is not available."""
+        # This is a very basic fallback when FAISS is not available
+        # It won't be as efficient but provides basic functionality
+        from collections import defaultdict
+        import re
         
-        self.index = FAISS.from_documents(self.chunks, self.embeddings)
+        # Create a simple inverted index
+        self._inverted_index = defaultdict(list)
+        self._documents = []
+        
+        for i, chunk in enumerate(self.chunks):
+            self._documents.append(chunk)
+            # Extract words and add to inverted index
+            text = chunk.page_content.lower()
+            words = re.findall(r'\b\w+\b', text)
+            for word in set(words):  # Use set to count each word only once per document
+                self._inverted_index[word].append(i)
+
+
+class WebSearchTool(BaseTool):
+    """A tool for searching the web using a search API."""
+    
+    name: str = "WebSearchTool"
+    description: str = "Searches the web for information on a given topic"
+    api_key: Optional[str] = None
+    search_engine: str = "google"
+    max_results: int = 5
+    
+    def __init__(self, api_key: Optional[str] = None, search_engine: str = "google", max_results: int = 5):
+        """Initialize the web search tool.
+        
+        Args:
+            api_key: API key for the search engine (optional)
+            search_engine: Search engine to use ('google', 'bing', etc.)
+            max_results: Maximum number of results to return
+        """
+        super().__init__()
+        self.api_key = api_key or os.environ.get("SEARCH_API_KEY")
+        self.search_engine = search_engine
+        self.max_results = max_results
+    
+    def _run(self, query: str) -> Dict[str, Any]:
+        """Search the web for the given query.
+        
+        Args:
+            query: The search query
+            
+        Returns:
+            Dictionary containing search results
+        """
+        if self.search_engine == "google" and not self.api_key:
+            # For demo purposes, return mock results when no API key is provided
+            return self._mock_search_results(query)
+        
+        try:
+            # This is a placeholder for an actual API call
+            # In a real implementation, you would call the appropriate search API
+            if self.search_engine == "google":
+                return self._google_search(query)
+            else:
+                return {"error": f"Unsupported search engine: {self.search_engine}"}
+                
+        except Exception as e:
+            return {"error": f"Error searching the web: {str(e)}"}
+    
+    def _mock_search_results(self, query: str) -> Dict[str, Any]:
+        """Generate mock search results when no API key is available."""
+        return {
+            "query": query,
+            "results": [
+                {
+                    "title": f"Search result 1 for {query}",
+                    "link": f"https://example.com/result1?q={query}",
+                    "snippet": f"This is a mock search result for {query}. In a real implementation, this would contain actual search results from the web.",
+                },
+                {
+                    "title": f"Search result 2 for {query}",
+                    "link": f"https://example.com/result2?q={query}",
+                    "snippet": f"Another mock search result for {query}. Please provide a SEARCH_API_KEY environment variable to get real results.",
+                }
+            ],
+            "note": "These are mock results. Add a SEARCH_API_KEY to your .env file to get real search results."
+        }
+    
+    def _google_search(self, query: str) -> Dict[str, Any]:
+        """Perform a Google search using the Custom Search API."""
+        if not self.api_key:
+            return self._mock_search_results(query)
+            
+        try:
+            # This would be implemented with the actual Google Custom Search API
+            # For now, return mock results
+            return self._mock_search_results(query)
+        except Exception as e:
+            return {"error": f"Error with Google Search API: {str(e)}"}
