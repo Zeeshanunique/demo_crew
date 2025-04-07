@@ -66,7 +66,7 @@ def get_ocr_tool() -> BaseTool:
         return FallbackTool(
             name="OCRTool",
             description="Extracts text from images",
-            missing_dependency="pytesseract"
+            missing_dependency="paddleocr"
         )
 
 

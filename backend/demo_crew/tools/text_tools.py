@@ -157,6 +157,7 @@ class DocumentRAGTool(BaseTool):
     
     name: str = "DocumentRAGTool"
     description: str = "Searches through documents to find relevant information using retrieval-augmented generation"
+    documents_dir: str = "knowledge"  # Added this line to properly define the field
     
     def __init__(self, documents_dir: str = "knowledge"):
         """Initialize the document RAG tool.
