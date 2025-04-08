@@ -651,6 +651,12 @@ video {
 .inset-0 {
   inset: 0px;
 }
+.inset-2 {
+  inset: 0.5rem;
+}
+.inset-4 {
+  inset: 1rem;
+}
 .-left-\[9px\] {
   left: -9px;
 }
@@ -826,6 +832,12 @@ video {
 .h-8 {
   height: 2rem;
 }
+.h-1 {
+  height: 0.25rem;
+}
+.h-32 {
+  height: 8rem;
+}
 .max-h-60 {
   max-height: 15rem;
 }
@@ -873,6 +885,9 @@ video {
 }
 .w-8 {
   width: 2rem;
+}
+.w-32 {
+  width: 8rem;
 }
 .max-w-2xl {
   max-width: 42rem;
@@ -1040,6 +1055,16 @@ video {
   margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(2rem * var(--tw-space-y-reverse));
 }
+.space-x-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 0;
+  margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
+}
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
 .self-end {
   align-self: flex-end;
 }
@@ -1087,6 +1112,9 @@ video {
 }
 .border-2 {
   border-width: 2px;
+}
+.border-4 {
+  border-width: 4px;
 }
 .border-b {
   border-bottom-width: 1px;
@@ -1163,6 +1191,32 @@ video {
 .border-green-800 {
   --tw-border-opacity: 1;
   border-color: rgb(22 101 52 / var(--tw-border-opacity, 1));
+}
+.border-blue-500\/20 {
+  border-color: rgb(59 130 246 / 0.2);
+}
+.border-blue-500\/30 {
+  border-color: rgb(59 130 246 / 0.3);
+}
+.border-b-transparent {
+  border-bottom-color: transparent;
+}
+.border-l-transparent {
+  border-left-color: transparent;
+}
+.border-r-indigo-500 {
+  --tw-border-opacity: 1;
+  border-right-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
+}
+.border-r-transparent {
+  border-right-color: transparent;
+}
+.border-t-blue-400 {
+  --tw-border-opacity: 1;
+  border-top-color: rgb(96 165 250 / var(--tw-border-opacity, 1));
+}
+.border-t-transparent {
+  border-top-color: transparent;
 }
 .border-opacity-20 {
   --tw-border-opacity: 0.2;
@@ -1252,6 +1306,9 @@ video {
 .bg-yellow-800\/30 {
   background-color: rgb(133 77 14 / 0.3);
 }
+.bg-black\/70 {
+  background-color: rgb(0 0 0 / 0.7);
+}
 .bg-opacity-30 {
   --tw-bg-opacity: 0.3;
 }
@@ -1340,6 +1397,11 @@ video {
   --tw-gradient-to: rgb(107 33 168 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-blue-500 {
+  --tw-gradient-from: #3b82f6 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(59 130 246 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .via-indigo-600 {
   --tw-gradient-to: rgb(79 70 229 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #4f46e5 var(--tw-gradient-via-position), var(--tw-gradient-to);
@@ -1382,6 +1444,9 @@ video {
 }
 .to-purple-900\/30 {
   --tw-gradient-to: rgb(88 28 135 / 0.3) var(--tw-gradient-to-position);
+}
+.to-indigo-600 {
+  --tw-gradient-to: #4f46e5 var(--tw-gradient-to-position);
 }
 .bg-\[length\:200\%_100\%\] {
   background-size: 200% 100%;
@@ -1490,6 +1555,12 @@ video {
 .pt-8 {
   padding-top: 2rem;
 }
+.pt-3 {
+  padding-top: 0.75rem;
+}
+.text-left {
+  text-align: left;
+}
 .text-center {
   text-align: center;
 }
@@ -1528,6 +1599,10 @@ video {
 .text-xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 .font-bold {
   font-weight: 700;
@@ -1658,6 +1733,15 @@ video {
   --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-2xl {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-blue-500\/50 {
+  --tw-shadow-color: rgb(59 130 246 / 0.5);
+  --tw-shadow: var(--tw-shadow-colored);
 }
 .outline {
   outline-style: solid;

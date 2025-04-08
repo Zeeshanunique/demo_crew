@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import {
@@ -150,6 +150,110 @@ export default function UploadPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center py-16 px-8 bg-gradient-to-b from-gray-900 to-gray-800">
+      {/* Fancy Processing Animation Overlay */}
+      <AnimatePresence>
+        {isUploading && uploadStatus?.status === 'processing' && (
+          <motion.div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="bg-gray-900 border border-blue-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 20 }}
+            >
+              <div className="text-center space-y-6">
+                <div className="relative mx-auto w-32 h-32">
+                  {/* Spinning outer circle */}
+                  <motion.div 
+                    className="absolute inset-0 rounded-full border-4 border-blue-500/20"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, ease: "linear", repeat: Infinity }}
+                  />
+                  
+                  {/* Spinning middle circle */}
+                  <motion.div 
+                    className="absolute inset-2 rounded-full border-4 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, ease: "linear", repeat: Infinity }}
+                  />
+                  
+                  {/* Spinning inner circle */}
+                  <motion.div 
+                    className="absolute inset-4 rounded-full border-4 border-r-indigo-500 border-t-transparent border-b-transparent border-l-transparent"
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 2, ease: "linear", repeat: Infinity }}
+                  />
+                  
+                  {/* Pulsing center dot */}
+                  <motion.div 
+                    className="absolute inset-0 flex items-center justify-center"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/50" />
+                  </motion.div>
+                </div>
+                
+                <motion.h3 
+                  className="text-xl font-bold text-white"
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  Processing {selectedType}
+                </motion.h3>
+                
+                <div className="space-y-2">
+                  <p className="text-gray-300">Our AI agents are analyzing your content</p>
+                  
+                  {/* Processing steps with animations */}
+                  <div className="space-y-1 pt-3">
+                    {[
+                      "Loading document...",
+                      "Extracting data structures...",
+                      "Analyzing content...",
+                      "Generating insights..."
+                    ].map((step, index) => (
+                      <motion.div 
+                        key={index}
+                        className="flex items-center space-x-3 text-left"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ 
+                          opacity: index < (Math.floor(Date.now() / 1000) % 4) + 1 ? 1 : 0.4,
+                          x: index < (Math.floor(Date.now() / 1000) % 4) + 1 ? 0 : -10
+                        }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="text-sm text-gray-400">{step}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* Progress bar */}
+                  <div className="h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                      initial={{ width: "5%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ 
+                        duration: 15,
+                        ease: "easeInOut"
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">This may take a few moments</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <motion.div 
         className="z-10 max-w-6xl w-full space-y-16"
         initial={{ opacity: 0 }}
