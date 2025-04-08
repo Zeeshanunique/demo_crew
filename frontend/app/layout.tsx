@@ -21,6 +21,7 @@ export default function RootLayout({
     { label: "Home", href: "/" },
     { label: "Case Files", href: "/case" },
     { label: "Upload", href: "/upload" },
+    { label: "Dataset", href: "/dataset" },
     { label: "About", href: "/about" }
   ];
 

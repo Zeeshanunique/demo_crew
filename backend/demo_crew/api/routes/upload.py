@@ -80,6 +80,63 @@ async def process_file(file_path: str, file_type: str, instructions: Optional[st
             }
         }
         
+        # Save result to a JSON file
+        result_filename = f"{os.path.splitext(os.path.basename(file_path))[0]}_result.json"
+        processed_dir = os.path.join(os.path.dirname(os.path.dirname(file_path)), "processed")
+        result_path = os.path.join(processed_dir, result_filename)
+        
+        with open(result_path, "w") as f:
+            json.dump(result, f, indent=2)
+        
+        # NEW CODE: Automatically run OutputExtractorAgent to extract and format the data
+        try:
+            # Initialize the MasterAgent
+            master_agent = MasterAgent()
+            
+            # Find the OutputExtractorAgent tool
+            output_extractor = next((tool for tool in master_agent.tools if tool.name == "OutputExtractorAgent"), None)
+            
+            if output_extractor:
+                # Get the paths for the datasets
+                backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                combined_dataset_path = os.path.join(backend_dir, "simplified_dataset.json")
+                demo_crew_dir = os.path.join(backend_dir, "demo_crew")
+                demo_crew_output_path = os.path.join(demo_crew_dir, "processed_data.json")
+                
+                # Ensure demo_crew directory exists
+                os.makedirs(os.path.dirname(demo_crew_output_path), exist_ok=True)
+                
+                # MODIFIED: Create a new dataset with only the current result instead of appending
+                # This will clear any previous entries
+                if "extracted_data" in result and "output" in result["extracted_data"] and "agent_type" in result["extracted_data"]:
+                    new_dataset = {
+                        "results": [
+                            {
+                                "output": result["extracted_data"]["output"],
+                                "agent_type": result["extracted_data"]["agent_type"]
+                            }
+                        ]
+                    }
+                    
+                    # Save the new dataset (overwriting any previous data)
+                    with open(combined_dataset_path, "w") as f:
+                        json.dump(new_dataset, f, indent=2)
+                    
+                    # Copy to the demo_crew directory
+                    with open(demo_crew_output_path, "w") as f:
+                        json.dump(new_dataset, f, indent=2)
+                    
+                    print(f"Simplified dataset created with new output and agent_type (previous data cleared)")
+                else:
+                    print("No output or agent_type found in the current result")
+            else:
+                print("OutputExtractorAgent not found in the MasterAgent's tools")
+        
+        except Exception as e:
+            print(f"Error in OutputExtractorAgent processing: {str(e)}")
+        
+        return result_path
+    
     except Exception as e:
         import traceback
         # Handle any exceptions during processing
@@ -146,7 +203,7 @@ async def get_processing_status(file_id: str):
     Check the status of a file being processed
     """
     # In a real implementation, this would check a database or queue
-    # For demonstration, we'll simulate completed status
+    # For demonstration, we'll check the processing result
     
     base_dir = ensure_upload_dirs()
     processed_dir = os.path.join(base_dir, "processed")
@@ -156,6 +213,26 @@ async def get_processing_status(file_id: str):
     result_files = [f for f in os.listdir(processed_dir) if f.startswith(file_id_base)]
     
     if result_files:
+        # Find the simplified dataset file
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        simplified_dataset_path = os.path.join(backend_dir, "simplified_dataset.json")
+        
+        # If simplified dataset exists, use it instead of the full result
+        if os.path.exists(simplified_dataset_path):
+            try:
+                with open(simplified_dataset_path, "r") as f:
+                    simplified_data = json.load(f)
+                
+                # Return only the simplified data
+                return {
+                    "status": "completed",
+                    "result": simplified_data,
+                    "result_file": "/simplified_dataset.json"
+                }
+            except Exception as e:
+                print(f"Error reading simplified dataset: {str(e)}")
+        
+        # Fallback to original result file if simplified dataset doesn't exist
         result_file = result_files[0]
         result_path = os.path.join(processed_dir, result_file)
         
@@ -172,3 +249,29 @@ async def get_processing_status(file_id: str):
         "status": "processing",
         "message": "File is still being processed"
     }
+
+@router.get("/dataset")
+async def get_simplified_dataset():
+    """
+    Get the simplified dataset containing only output and agent_type fields
+    """
+    # Look for the simplified dataset in multiple locations
+    possible_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "simplified_dataset.json"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "processed_data.json"),
+    ]
+    
+    dataset = {"results": []}
+    
+    # Try each path until we find the dataset
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    dataset = json.load(f)
+                break
+            except Exception as e:
+                print(f"Error reading {path}: {str(e)}")
+    
+    # Return only the output and agent_type fields for each result
+    return dataset

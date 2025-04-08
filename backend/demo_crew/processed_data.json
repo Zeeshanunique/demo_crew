@@ -1,7 +1,8 @@
 {
-  "text_processing": "I have processed the documents in the specified directory. Here are some key findings from the documents:\n\n1. **System Logs**:\n   - **File Name**: system_logs.txt\n   - **Contents**:\n     - Research Notes by alex.rodriguez\n     - Q2 Projections by thomas.greene\n     - Firewall Update by maya.williams\n     - Work Backup by thomas.greene\n\n2. **Sample Document**:\n   - **File Name**: sample_document.txt\n   - **Contents**:\n     - Internal memo regarding the unauthorized removal of Project Nexus documentation.\n     - Instructions for department heads to review access logs and suspend sharing of Project Nexus information.\n     - Mention of new staff members: Dr. Alex Rodriguez, Maya Williams, and Thomas Greene.\n     - Request to review system access granted to the new staff members.\n     - Announcement of an emergency meeting to discuss next steps.\n\nThese documents provide insights into security breaches, unauthorized access, and the importance of safeguarding sensitive information related to Project Nexus.",
-  "image_processing": "It seems that the image files in the directory were not found at the specified paths. If you have any specific images you would like to analyze, please provide the correct paths, and I will process them accordingly.",
-  "video_processing": "I encountered an error while trying to process the videos in the specified path. It seems that I couldn't open the video file. Please ensure that the path is correct and that the videos are accessible for processing.",
-  "audio_processing": "Unfortunately, I encountered the same issue with the audio file \"audio5.mp3\" not being found at the specified path. It seems that there are no audio files present in the directory for transcription. If you have any specific audio files you would like me to transcribe, please provide the correct paths for them.",
-  "timestamp": "2025-04-08 05:44:57"
+  "results": [
+    {
+      "output": "I've analyzed the image and extracted the following information:\n\n## Extracted Text\nThis is a Iot of 12 point text to test the ocr code and see if it works on all types of file format.. The quick brown dog jumped over the lazy fox. The quick brown dog jumped. over the lazy fox. The quick brown dog jumped over the lazy fox. The quick brown dog jumped over the lazy fox.\n\n## Image Properties\nDimensions: 640x480\nAspect ratio: 1.33\nBrightness: 230.9/255\nContrast: 74.6\nFile size: 22.8 KB\n\n",
+      "agent_type": "image"
+    }
+  ]
 }

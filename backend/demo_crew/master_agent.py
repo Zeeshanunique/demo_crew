@@ -266,6 +266,45 @@ class SchemaManipulationTool(BaseTool):
         result = populate_structure(result, flat_data)
         return result
 
+class OutputExtractorAgent(BaseTool):
+    """Agent to extract only the output and agent_type fields from processed files."""
+    name: str = "OutputExtractorAgent"
+    description: str = "Extracts output and agent_type fields from processed files and formats them as a JSON dataset."
+
+    def _run(self, dataset_path: str) -> Dict[str, Any]:
+        """
+        Extracts the output and agent_type fields from the dataset.
+
+        Args:
+            dataset_path: Path to the JSON dataset file.
+
+        Returns:
+            A dictionary containing the simplified dataset.
+        """
+        try:
+            # Load the dataset
+            with open(dataset_path, 'r') as f:
+                dataset = json.load(f)
+
+            # Extract only the output and agent_type fields
+            simplified_results = []
+            for item in dataset.get("results", []):
+                if "output" in item and "agent_type" in item:
+                    simplified_results.append({
+                        "output": item["output"],
+                        "agent_type": item["agent_type"]
+                    })
+
+            return {
+                "success": True,
+                "results": simplified_results
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
 class MasterAgent:
     """Master agent that orchestrates document intelligence agents"""
     
@@ -335,11 +374,14 @@ class MasterAgent:
             func=self._get_agents_info
         )
         
+        output_extractor_tool = OutputExtractorAgent()
+        
         return [
             schema_tool,
             run_workflow_tool,
             run_agent_tool,
-            get_agents_info_tool
+            get_agents_info_tool,
+            output_extractor_tool
         ]
     
     def _create_agent_executor(self) -> AgentExecutor:

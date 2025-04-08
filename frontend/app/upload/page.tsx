@@ -377,7 +377,20 @@ export default function UploadPage() {
                       <h4 className="text-md font-semibold text-white mb-2">Results:</h4>
                       <div className="bg-gray-900 p-3 rounded overflow-auto max-h-60">
                         <pre className="text-gray-300 text-sm whitespace-pre-wrap">
-                          {JSON.stringify(uploadStatus.result, null, 2)}
+                            {uploadStatus.result.results && uploadStatus.result.results.length > 0 ? (
+                            JSON.stringify(
+                              { 
+                              results: uploadStatus.result.results.map((item: { output: any; agent_type: string }) => ({
+                                output: item.output,
+                                agent_type: item.agent_type
+                              }))
+                              }, 
+                              null, 
+                              2
+                            )
+                            ) : (
+                            JSON.stringify(uploadStatus.result, null, 2)
+                            )}
                         </pre>
                       </div>
                       
