@@ -29,6 +29,17 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 98%;
+    --brand-primary: 215 100% 50%;
+    --brand-secondary: 262 83% 58%;
+    --brand-accent: 340 82% 52%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -55,6 +66,17 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --success: 142 69% 29%;
+    --success-foreground: 0 0% 98%;
+    --info: 199 89% 38%;
+    --info-foreground: 0 0% 98%;
+    --warning: 38 92% 40%;
+    --warning-foreground: 0 0% 98%;
+    --error: 0 74% 42%;
+    --error-foreground: 0 0% 98%;
+    --brand-primary: 215 100% 60%;
+    --brand-secondary: 262 83% 68%;
+    --brand-accent: 340 82% 59%;
   }
 }
 
@@ -141,4 +163,4 @@
 .hover-underline:hover::after {
   transform: scaleX(1);
   transform-origin: bottom left;
-} 
+}

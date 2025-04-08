@@ -51,6 +51,29 @@ module.exports = {
   			},
   			'dark-blue': '#0d1117',
   			'dark-blue-light': '#161b22',
+  			'dark-blue-lighter': '#21262d',
+  			'dark-blue-dark': '#010409',
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			info: {
+  				DEFAULT: 'hsl(var(--info))',
+  				foreground: 'hsl(var(--info-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
+  			},
+  			error: {
+  				DEFAULT: 'hsl(var(--error))',
+  				foreground: 'hsl(var(--error-foreground))'
+  			},
+  			brand: {
+  				primary: 'hsl(var(--brand-primary))',
+  				secondary: 'hsl(var(--brand-secondary))',
+  				accent: 'hsl(var(--brand-accent))'
+  			},
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
@@ -111,4 +134,4 @@ module.exports = {
   	}
   },
   plugins: [require("tailwindcss-animate")],
-} 
+}
