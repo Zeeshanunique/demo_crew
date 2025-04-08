@@ -77,11 +77,11 @@ export default function Home() {
               Upload Documents
             </Button>
           </Link>
-          <Link href="/case">
+          {/* <Link href="/case">
             <Button variant="outline" className="bg-transparent border-2 border-gray-600 hover:border-gray-400 text-white px-8 py-6 text-lg rounded-lg shadow-lg transition-all duration-300">
               View Case Files
             </Button>
-          </Link>
+          </Link> */}
         </motion.div>
       </motion.div>
 

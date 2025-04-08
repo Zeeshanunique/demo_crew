@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   const navItems = [
     { label: "Home", href: "/" },
-    { label: "Case Files", href: "/case" },
+    // { label: "Case Files", href: "/case" },
     { label: "Upload", href: "/upload" },
     { label: "Dataset", href: "/dataset" },
     { label: "About", href: "/about" }

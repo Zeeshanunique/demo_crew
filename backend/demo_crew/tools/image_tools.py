@@ -1,7 +1,7 @@
 import os
 import base64
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from langchain.tools import BaseTool
 from PIL import Image
 import numpy as np
@@ -10,6 +10,8 @@ import requests
 from mistralai import Mistral
 import dotenv
 import json
+import difflib
+import re
 
 # Try to import PaddleOCR as a fallback
 try:
@@ -21,22 +23,81 @@ except ImportError:
 # Load environment variables
 dotenv.load_dotenv()
 
+def calculate_text_accuracy(extracted_text: str, ground_truth: str) -> Tuple[float, Dict]:
+    """
+    Calculate the accuracy of extracted text compared to ground truth.
+    
+    Args:
+        extracted_text: Text extracted from OCR
+        ground_truth: Known correct text
+        
+    Returns:
+        Tuple of (accuracy score, detailed metrics)
+    """
+    # Normalize texts for comparison (lowercase, remove extra whitespace)
+    norm_extracted = re.sub(r'\s+', ' ', extracted_text.lower().strip())
+    norm_ground = re.sub(r'\s+', ' ', ground_truth.lower().strip())
+    
+    # Calculate character-level accuracy using SequenceMatcher
+    matcher = difflib.SequenceMatcher(None, norm_extracted, norm_ground)
+    char_accuracy = matcher.ratio()
+    
+    # Calculate word-level accuracy
+    extracted_words = set(norm_extracted.split())
+    ground_words = set(norm_ground.split())
+    
+    if len(ground_words) == 0:
+        word_accuracy = 0.0
+    else:
+        # Words in common / total ground truth words
+        common_words = extracted_words.intersection(ground_words)
+        word_accuracy = len(common_words) / len(ground_words)
+    
+    # Calculate overall accuracy as weighted average
+    overall_accuracy = (char_accuracy * 0.7) + (word_accuracy * 0.3)
+    
+    # Detailed metrics
+    metrics = {
+        "character_match_ratio": char_accuracy,
+        "word_match_ratio": word_accuracy,
+        "overall_accuracy": overall_accuracy,
+        "extracted_length": len(norm_extracted),
+        "ground_truth_length": len(norm_ground),
+        "confidence_level": get_confidence_level(overall_accuracy)
+    }
+    
+    return overall_accuracy, metrics
+
+def get_confidence_level(accuracy_score: float) -> str:
+    """Convert accuracy score to confidence level string"""
+    if accuracy_score >= 0.9:
+        return "Very High"
+    elif accuracy_score >= 0.7:
+        return "High"
+    elif accuracy_score >= 0.5:
+        return "Moderate"
+    elif accuracy_score >= 0.3:
+        return "Low"
+    else:
+        return "Very Low"
+
 class MistralOCRTool(BaseTool):
     """Tool for performing OCR using Mistral AI's API."""
     
     name: str = "MistralOCRTool"
     description: str = "Extracts text from images using Mistral AI's document processing API"
     
-    def _run(self, image_path: str = None, image_data: bytes = None):
+    def _run(self, image_path: str = None, image_data: bytes = None, ground_truth: str = None):
         """
         Perform OCR on an image using Mistral AI.
         
         Args:
             image_path: Path to the image file
             image_data: Raw image data (alternative to image_path)
+            ground_truth: Optional ground truth text to calculate accuracy
             
         Returns:
-            Dictionary with OCR results
+            Dictionary with OCR results and accuracy metrics if ground truth is provided
         """
         try:
             import requests
@@ -86,36 +147,74 @@ class MistralOCRTool(BaseTool):
             
             if response.status_code != 200:
                 # Fall back to PaddleOCR if Mistral API fails
-                return self._run_paddle_ocr(image_path, image_data)
+                result = self._run_paddle_ocr(image_path, image_data)
+            else:
+                result = response.json()
+                
+                # Process the Mistral AI OCR response to match expected format
+                extracted_text = ""
+                text_blocks = []
+                
+                # Extract text from Mistral's response format
+                # This structure needs to match Mistral's actual API response format
+                if "pages" in result:
+                    for page in result["pages"]:
+                        if "text" in page:
+                            extracted_text += page["text"] + "\n\n"
+                        if "blocks" in page:
+                            text_blocks.extend(page["blocks"])
+                elif "text" in result:
+                    # Direct text field
+                    extracted_text = result["text"]
+                
+                result = {
+                    "extracted_text": extracted_text,
+                    "text_blocks": text_blocks,
+                    "raw_response": result
+                }
             
-            result = response.json()
-            
-            # Process the Mistral AI OCR response to match expected format
-            extracted_text = ""
-            text_blocks = []
-            
-            # Extract text from Mistral's response format
-            # This structure needs to match Mistral's actual API response format
-            if "pages" in result:
-                for page in result["pages"]:
-                    if "text" in page:
-                        extracted_text += page["text"] + "\n\n"
-                    if "blocks" in page:
-                        text_blocks.extend(page["blocks"])
-            elif "text" in result:
-                # Direct text field
-                extracted_text = result["text"]
-            
-            return {
-                "extracted_text": extracted_text,
-                "text_blocks": text_blocks,
-                "raw_response": result
-            }
+            # Calculate accuracy if ground truth is provided
+            if ground_truth and "extracted_text" in result:
+                accuracy, accuracy_metrics = calculate_text_accuracy(
+                    result["extracted_text"], 
+                    ground_truth
+                )
+                
+                result["accuracy"] = accuracy_metrics
+                
+                # Print accuracy to terminal
+                print(f"\n===== OCR ACCURACY EVALUATION =====")
+                print(f"Overall Accuracy: {accuracy_metrics['overall_accuracy']:.2%}")
+                print(f"Character Match: {accuracy_metrics['character_match_ratio']:.2%}")
+                print(f"Word Match: {accuracy_metrics['word_match_ratio']:.2%}")
+                print(f"Confidence Level: {accuracy_metrics['confidence_level']}")
+                print("=================================\n")
+                
+            return result
             
         except Exception as e:
             print(f"Error with Mistral OCR: {str(e)}")
             # Fall back to PaddleOCR if exception occurs
-            return self._run_paddle_ocr(image_path, image_data)
+            result = self._run_paddle_ocr(image_path, image_data)
+            
+            # Try to calculate accuracy even with fallback
+            if ground_truth and "extracted_text" in result:
+                accuracy, accuracy_metrics = calculate_text_accuracy(
+                    result["extracted_text"], 
+                    ground_truth
+                )
+                
+                result["accuracy"] = accuracy_metrics
+                
+                # Print accuracy to terminal
+                print(f"\n===== OCR ACCURACY EVALUATION (FALLBACK) =====")
+                print(f"Overall Accuracy: {accuracy_metrics['overall_accuracy']:.2%}")
+                print(f"Character Match: {accuracy_metrics['character_match_ratio']:.2%}")
+                print(f"Word Match: {accuracy_metrics['word_match_ratio']:.2%}")
+                print(f"Confidence Level: {accuracy_metrics['confidence_level']}")
+                print("=================================\n")
+                
+            return result
     
     def _run_paddle_ocr(self, image_path: str = None, image_data: bytes = None):
         """Fallback to PaddleOCR if Mistral API isn't available."""

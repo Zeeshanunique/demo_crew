@@ -234,7 +234,29 @@ class DocumentGraph:
         if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'image':
             # Try direct OCR processing first
             try:
-                from .tools.image_tools import ImageAnalysisTool
+                from .tools.image_tools import MistralOCRTool, ImageAnalysisTool
+                
+                # Check if we should use ground truth for accuracy evaluation
+                ground_truth = None
+                if "image_ground_truth" in state:
+                    ground_truth = state.get("image_ground_truth")
+                else:
+                    # Use predefined ground truth for common test images
+                    image_name = os.path.basename(direct_file_path).lower()
+                    if "ocr_test" in image_name or "text_sample" in image_name:
+                        ground_truth = "This is a Iot of 12 point text to test the ocr code and see if it works on all types of file format.. The quick brown dog jumped over the lazy fox. The quick brown dog jumped. over the lazy fox. The quick brown dog jumped over the lazy fox. The quick brown dog jumped over the lazy fox."
+                
+                # First run OCR if ground truth is available to get accuracy
+                if ground_truth:
+                    ocr_tool = MistralOCRTool()
+                    ocr_result = ocr_tool._run(image_path=direct_file_path, ground_truth=ground_truth)
+                    
+                    # Store accuracy metrics in state if available
+                    if 'accuracy' in ocr_result:
+                        new_state = state.copy()
+                        new_state["image_accuracy"] = ocr_result['accuracy']
+                
+                # Then run full image analysis
                 image_tool = ImageAnalysisTool()
                 image_result = image_tool._run(
                     direct_file_path, 
@@ -425,7 +447,68 @@ class DocumentGraph:
         file_type = state.get('file_type')
         
         if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'audio':
-            # Process the specific audio file
+            # Try direct audio processing first
+            try:
+                from .tools.audio_tools import WhisperTranscriptionTool
+                
+                # Check if we should use ground truth for accuracy evaluation
+                ground_truth = None
+                if "audio_ground_truth" in state:
+                    ground_truth = state.get("audio_ground_truth")
+                else:
+                    # Use predefined ground truth for common test audio files
+                    audio_name = os.path.basename(direct_file_path).lower()
+                    if "test_sample" in audio_name or "harvard" in audio_name:
+                        ground_truth = """1. "The stale smell of old beer lingers."
+2. "It takes heat to bring out the odor."
+3. "A cold dip restores health and zest."
+4. "A salt pickle tastes fine with ham."
+5. "Tacos al pastor are my favorite."
+6. "A zestful food is the hot cross bun."
+
+Language: English"""
+                
+                # Run transcription with ground truth for accuracy calculation if available
+                audio_tool = WhisperTranscriptionTool(model_size="base")
+                result = audio_tool._run(direct_file_path, ground_truth=ground_truth)
+                
+                # Store accuracy metrics in state if available
+                if 'accuracy' in result:
+                    new_state = state.copy()
+                    new_state["audio_accuracy"] = result['accuracy']
+                
+                if 'error' not in result:
+                    # Format the result for output
+                    output = "I've transcribed the audio and extracted the following information:\n\n"
+                    
+                    # Add the transcription
+                    if 'transcription' in result:
+                        output += f"## Audio Transcript\n{result['transcription']}\n\n"
+                    
+                    # Add language detection if available
+                    if 'language' in result:
+                        output += f"Detected language: {result['language']}\n\n"
+                    
+                    # Add segments with timestamps if available
+                    if 'segments' in result and result['segments']:
+                        output += "## Segment Details\n"
+                        for i, segment in enumerate(result['segments'][:5]):  # Show first 5 segments only
+                            output += f"{i+1}. ({segment['start']:.2f}s - {segment['end']:.2f}s): {segment['text']}\n"
+                        if len(result['segments']) > 5:
+                            output += f"... {len(result['segments']) - 5} more segments\n"
+                        output += "\n"
+                    
+                    # Update state with result
+                    new_state = state.copy()
+                    new_state["audio_processing_result"] = output
+                    return new_state
+            except Exception as e:
+                import traceback
+                trace = traceback.format_exc()
+                print(f"Error in direct audio processing: {str(e)}\n{trace}")
+                # Continue to agent-based processing
+            
+            # Process the specific audio file using agent
             agent_inputs = {
                 "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
                 "task_config": task_config.get('description', ''),
@@ -454,7 +537,7 @@ class DocumentGraph:
         return new_state
     
     def _compile_results(self, state: Dict) -> Dict:
-        """Compile the results from all agents"""
+        """Compile the results from all agents and display accuracy metrics if available"""
         output = {
             "text_processing": state.get("text_processing_result", ""),
             "image_processing": state.get("image_processing_result", ""),
@@ -463,10 +546,43 @@ class DocumentGraph:
             "timestamp": state.get("process_timestamp", ""),
         }
         
+        # Calculate accuracy metrics based on result quality
+        accuracy_metrics = {
+            "text_accuracy": 0.0,
+            "image_accuracy": 0.0,
+            "video_accuracy": 0.0,
+            "audio_accuracy": 0.0,
+            "overall_accuracy": 0.0
+        }
+        
         # Include the direct file path if it was processed
         if state.get("direct_file_path"):
             output["processed_file"] = state.get("direct_file_path")
             output["file_type"] = state.get("file_type", "unknown")
+            
+            # Display accuracy metrics in terminal if they exist
+            file_type = state.get("file_type", "")
+            if file_type == "image" and hasattr(state, "image_accuracy"):
+                accuracy = state.get("image_accuracy", {})
+                if accuracy:
+                    print("\n===== FINAL IMAGE PROCESSING ACCURACY =====")
+                    print(f"Overall Accuracy: {accuracy.get('overall_accuracy', 0):.2%}")
+                    print(f"Confidence Level: {accuracy.get('confidence_level', 'Unknown')}")
+                    print("===========================================\n")
+                    accuracy_metrics["image_accuracy"] = accuracy.get("overall_accuracy", 0.0)
+            
+            elif file_type == "audio" and hasattr(state, "audio_accuracy"):
+                accuracy = state.get("audio_accuracy", {})
+                if accuracy:
+                    print("\n===== FINAL AUDIO PROCESSING ACCURACY =====")
+                    print(f"Overall Accuracy: {accuracy.get('overall_accuracy', 0):.2%}")
+                    print(f"Word Match Ratio: {accuracy.get('word_match_ratio', 0):.2%}")
+                    print(f"Confidence Level: {accuracy.get('confidence_level', 'Unknown')}")
+                    print("===========================================\n")
+                    accuracy_metrics["audio_accuracy"] = accuracy.get("overall_accuracy", 0.0)
+        
+        # Add accuracy metrics to output
+        output["accuracy_metrics"] = accuracy_metrics
         
         # Save to output file if specified
         output_format = state.get("output_format", "")
