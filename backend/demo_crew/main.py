@@ -95,12 +95,13 @@ def run_workflow():
     except Exception as e:
         raise Exception(f"An error occurred while running the workflow: {e}")
 
-def process_user_query(query: str) -> Dict[str, Any]:
+def process_user_query(query: str, direct_file_path: str = None) -> Dict[str, Any]:
     """
     Process a user query using the master agent
     
     Args:
         query: User's natural language query
+        direct_file_path: Optional path to a specific file to process
         
     Returns:
         Dictionary with the result of processing the query
@@ -118,7 +119,7 @@ def process_user_query(query: str) -> Dict[str, Any]:
     try:
         # Initialize the master agent and process the query
         master_agent = MasterAgent()
-        return master_agent.run(query)
+        return master_agent.run(query, direct_file_path=direct_file_path)
     except Exception as e:
         raise Exception(f"An error occurred while processing the query: {e}")
 

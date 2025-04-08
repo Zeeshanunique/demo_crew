@@ -5,7 +5,7 @@ This module replaces the previous CrewAI implementation with a LangGraph workflo
 
 import os
 import yaml
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_tools_agent
@@ -138,12 +138,80 @@ class DocumentGraph:
         agent_config = self.agents_config.get('text_data_specialist', {})
         task_config = self.tasks_config.get('process_text_data', {})
         
-        # Prepare inputs
-        agent_inputs = {
-            "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
-            "task_config": task_config.get('description', ''),
-            "input": f"Process the documents in: {state.get('documents_dir', 'data/documents')}"
-        }
+        # Check if direct file path is provided
+        direct_file_path = state.get('direct_file_path')
+        file_type = state.get('file_type')
+        
+        if direct_file_path and os.path.isfile(direct_file_path) and (file_type == 'text' or file_type is None):
+            # Process the specific file directly using DocumentRAGTool with single_file parameter
+            try:
+                # Import directly to ensure we're using the latest version
+                from .tools.text_tools import DocumentRAGTool
+                rag_tool = DocumentRAGTool()
+                
+                # Process the file and get its content
+                file_result = rag_tool._run(query="Extract structured information", single_file=direct_file_path)
+                
+                # Format the result for output
+                if 'error' in file_result:
+                    output = f"Error processing file: {file_result.get('error')}"
+                    if 'traceback' in file_result:
+                        output += f"\nDetails: {file_result.get('traceback')}"
+                else:
+                    # Extract structured information
+                    output = "I've extracted the following information from the document:\n\n"
+                    
+                    # Add structured data
+                    structured_data = file_result.get('structured_data', {})
+                    
+                    # Add summary
+                    if 'summary' in structured_data:
+                        output += f"Document Summary: {structured_data['summary']}\n\n"
+                    
+                    # Add detected entities
+                    entities = structured_data.get('detected_entities', {})
+                    if entities:
+                        output += "Detected Entities:\n"
+                        for entity_type, entity_values in entities.items():
+                            if entity_values:
+                                output += f"- {entity_type.replace('_', ' ').title()}: {', '.join(entity_values)}\n"
+                        output += "\n"
+                    
+                    # Add metadata
+                    metadata = file_result.get('metadata', {})
+                    if metadata:
+                        output += f"Document Metadata: {len(metadata)} fields available\n"
+                        output += f"Total Pages: {file_result.get('page_count', 1)}\n\n"
+                
+                # Store the processed content in state
+                new_state = state.copy()
+                new_state["text_processing_result"] = output
+                return new_state
+                
+            except Exception as e:
+                import traceback
+                trace = traceback.format_exc()
+                # Fall back to agent processing if there's an error
+                output = f"Error using direct file processing: {str(e)}\n{trace}\nFalling back to agent processing."
+                print(output)
+                # Continue to agent processing
+                pass
+        
+        # Use agent-based processing (either as primary method or fallback)
+        if direct_file_path and os.path.isfile(direct_file_path) and (file_type == 'text' or file_type is None):
+            # Process the specific file
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Process and extract structured information from the document at: {direct_file_path}"
+            }
+        else:
+            # Process the directory
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Process the documents in: {state.get('documents_dir', 'data/documents')}"
+            }
         
         # Run the agent
         result = self.agent_executors["text"].invoke(agent_inputs)
@@ -159,12 +227,30 @@ class DocumentGraph:
         agent_config = self.agents_config.get('image_ocr_analyst', {})
         task_config = self.tasks_config.get('process_image_data', {})
         
-        # Prepare inputs
-        agent_inputs = {
-            "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
-            "task_config": task_config.get('description', ''),
-            "input": f"Process the images in: {state.get('images_dir', 'data/images')}"
-        }
+        # Check if direct file path is provided and matches image type
+        direct_file_path = state.get('direct_file_path')
+        file_type = state.get('file_type')
+        
+        if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'image':
+            # Process the specific image file
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Analyze the image at {direct_file_path} using OCR to extract text and identify visual elements"
+            }
+        else:
+            # Process the directory or skip if not processing images
+            if file_type and file_type != 'image' and direct_file_path:
+                # Skip processing for other file types
+                new_state = state.copy()
+                new_state["image_processing_result"] = "Skipped - not an image file"
+                return new_state
+                
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Process the images in: {state.get('images_dir', 'data/images')}"
+            }
         
         # Run the agent
         result = self.agent_executors["image"].invoke(agent_inputs)
@@ -180,12 +266,30 @@ class DocumentGraph:
         agent_config = self.agents_config.get('video_transcriber', {})
         task_config = self.tasks_config.get('process_video_data', {})
         
-        # Prepare inputs
-        agent_inputs = {
-            "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
-            "task_config": task_config.get('description', ''),
-            "input": f"Process the videos in: {state.get('video_dir', 'data/video')}"
-        }
+        # Check if direct file path is provided and matches video type
+        direct_file_path = state.get('direct_file_path')
+        file_type = state.get('file_type')
+        
+        if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'video':
+            # Process the specific video file
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Analyze the video at {direct_file_path}, extract key frames, and identify important content"
+            }
+        else:
+            # Process the directory or skip if not processing videos
+            if file_type and file_type != 'video' and direct_file_path:
+                # Skip processing for other file types
+                new_state = state.copy()
+                new_state["video_processing_result"] = "Skipped - not a video file"
+                return new_state
+                
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Process the videos in: {state.get('video_dir', 'data/video')}"
+            }
         
         # Run the agent
         result = self.agent_executors["video"].invoke(agent_inputs)
@@ -201,12 +305,30 @@ class DocumentGraph:
         agent_config = self.agents_config.get('audio_transcriber', {})
         task_config = self.tasks_config.get('process_audio_data', {})
         
-        # Prepare inputs
-        agent_inputs = {
-            "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
-            "task_config": task_config.get('description', ''),
-            "input": f"Process the audio files in: {state.get('audio_dir', 'data/audio')}"
-        }
+        # Check if direct file path is provided and matches audio type
+        direct_file_path = state.get('direct_file_path')
+        file_type = state.get('file_type')
+        
+        if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'audio':
+            # Process the specific audio file
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Transcribe the audio file at: {direct_file_path}"
+            }
+        else:
+            # Process the directory or skip if not processing audio
+            if file_type and file_type != 'audio' and direct_file_path:
+                # Skip processing for other file types
+                new_state = state.copy()
+                new_state["audio_processing_result"] = "Skipped - not an audio file"
+                return new_state
+                
+            agent_inputs = {
+                "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
+                "task_config": task_config.get('description', ''),
+                "input": f"Process the audio files in: {state.get('audio_dir', 'data/audio')}"
+            }
         
         # Run the agent
         result = self.agent_executors["audio"].invoke(agent_inputs)
@@ -225,6 +347,11 @@ class DocumentGraph:
             "audio_processing": state.get("audio_processing_result", ""),
             "timestamp": state.get("process_timestamp", ""),
         }
+        
+        # Include the direct file path if it was processed
+        if state.get("direct_file_path"):
+            output["processed_file"] = state.get("direct_file_path")
+            output["file_type"] = state.get("file_type", "unknown")
         
         # Save to output file if specified
         output_format = state.get("output_format", "")
@@ -262,10 +389,38 @@ class DocumentGraph:
         # Compile the workflow
         return workflow.compile()
 
-    def run(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Run the workflow with the given inputs"""
+    def run(self, inputs: Dict[str, Any] = None, direct_file_path: str = None, file_type: str = None) -> Dict[str, Any]:
+        """
+        Run the workflow with the given inputs
+        
+        Args:
+            inputs: Dictionary of inputs for the workflow
+            direct_file_path: Optional path to a specific file to process
+            file_type: Optional type of the file (text, image, video, audio)
+            
+        Returns:
+            Dictionary with the results of the workflow
+        """
         if inputs is None:
             inputs = {}
+        
+        # Add direct file path and type to inputs if provided
+        if direct_file_path and os.path.exists(direct_file_path):
+            inputs["direct_file_path"] = direct_file_path
+            
+            # Determine file type if not provided
+            if file_type is None:
+                file_ext = os.path.splitext(direct_file_path)[1].lower()
+                if file_ext in [".txt", ".pdf", ".docx", ".md", ".csv", ".json", ".xml", ".html"]:
+                    file_type = "text"
+                elif file_ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]:
+                    file_type = "image"
+                elif file_ext in [".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv"]:
+                    file_type = "video"
+                elif file_ext in [".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg"]:
+                    file_type = "audio"
+            
+            inputs["file_type"] = file_type
         
         # Execute the workflow
         result = self.workflow.invoke(inputs)

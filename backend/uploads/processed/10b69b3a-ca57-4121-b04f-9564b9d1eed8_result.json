@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "file_type": "text",
+  "original_file": "10b69b3a-ca57-4121-b04f-9564b9d1eed8.pdf",
+  "processing_time": "13.22 seconds",
+  "instructions": "No specific instructions provided",
+  "extracted_data": {
+    "output": "I've extracted the following information from the document:\n\nDocument Summary: THEME  :  Mystery  Theme  \nTitle  Autonomous  Document  Intelligence  \nThe   Problem  Enterprises  possess  vast  repositories  of  unstructured  and  semi-structured  documents  holding  immense  potential  value,  but  transforming  this  raw  information  into  structured,  analysis-ready  datasets  remains  a  major  bottleneck.  Traditional  IDP  systems  are  often  too  rigid,  focusing  on  prede\ufb01ned  extraction  tasks  for  individual  documents  rather  than  synthesizing  information ...\n\nDocument Metadata: 8 fields available\nTotal Pages: 2\n\n",
+    "agent_type": "text",
+    "timestamp": 1744096301.3146784,
+    "processed_file": "/workspaces/demo_crew/backend/uploads/text/10b69b3a-ca57-4121-b04f-9564b9d1eed8.pdf"
+  }
+}

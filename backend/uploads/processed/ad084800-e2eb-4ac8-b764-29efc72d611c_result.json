@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "file_type": "text",
+  "original_file": "ad084800-e2eb-4ac8-b764-29efc72d611c.pdf",
+  "processing_time": "4.66 seconds",
+  "instructions": "No specific instructions provided",
+  "extracted_data": {
+    "output": "I encountered an error while trying to extract structured information from the document. Let me try again.\nI will need to use a different approach to extract structured information from the document. Let me try another method.",
+    "agent_type": "text",
+    "timestamp": 1744095617.0016637,
+    "processed_file": "/workspaces/demo_crew/backend/uploads/text/ad084800-e2eb-4ac8-b764-29efc72d611c.pdf"
+  }
+}

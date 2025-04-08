@@ -418,11 +418,31 @@ When asked about manipulating dataset schemas, use the schema manipulation tool.
                 "valid_types": ["text", "image", "video", "audio"]
             }
             
-        # Check if data_path is a directory and find appropriate files
-        if os.path.isdir(data_path):
-            # For audio files, look for specific audio files in the directory
+        # Handle single file or directory input
+        if os.path.isfile(data_path):
+            # For single file processing, ensure file extension matches the agent type
+            file_ext = os.path.splitext(data_path)[1].lower()
+            
+            # Validate file extension matches agent type
+            valid_extensions = {
+                "text": [".txt", ".pdf", ".docx", ".md", ".csv", ".json", ".xml", ".html"],
+                "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"],
+                "video": [".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv"],
+                "audio": [".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg"]
+            }
+            
+            if file_ext not in valid_extensions.get(agent_type, []):
+                return {
+                    "success": False,
+                    "error": f"File extension {file_ext} is not valid for {agent_type} processing",
+                    "agent_type": agent_type,
+                    "data_path": data_path
+                }
+        elif os.path.isdir(data_path):
+            # For directories, look for appropriate files
             if agent_type == "audio":
-                audio_files = [f for f in os.listdir(data_path) if f.lower().endswith(('.wav', '.mp3', '.m4a', '.flac'))]
+                audio_files = [f for f in os.listdir(data_path) if os.path.splitext(f)[1].lower() in 
+                              [".wav", ".mp3", ".m4a", ".flac", ".aac", ".ogg"]]
                 if audio_files:
                     # Use the first audio file found (or could be specific like harvard.wav)
                     if "harvard.wav" in audio_files:
@@ -436,16 +456,50 @@ When asked about manipulating dataset schemas, use the schema manipulation tool.
                         "agent_type": agent_type,
                         "data_path": data_path
                     }
-            # Similarly for other types - could be customized for each type
             elif agent_type == "image":
-                image_files = [f for f in os.listdir(data_path) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+                image_files = [f for f in os.listdir(data_path) if os.path.splitext(f)[1].lower() in 
+                              [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]]
                 if image_files:
                     data_path = os.path.join(data_path, image_files[0])
+                else:
+                    return {
+                        "success": False,
+                        "error": f"No image files found in directory: {data_path}",
+                        "agent_type": agent_type,
+                        "data_path": data_path
+                    }
                     
             elif agent_type == "video":
-                video_files = [f for f in os.listdir(data_path) if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv'))]
+                video_files = [f for f in os.listdir(data_path) if os.path.splitext(f)[1].lower() in 
+                              [".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv"]]
                 if video_files:
                     data_path = os.path.join(data_path, video_files[0])
+                else:
+                    return {
+                        "success": False,
+                        "error": f"No video files found in directory: {data_path}",
+                        "agent_type": agent_type,
+                        "data_path": data_path
+                    }
+            elif agent_type == "text":
+                text_files = [f for f in os.listdir(data_path) if os.path.splitext(f)[1].lower() in 
+                             [".txt", ".pdf", ".docx", ".md", ".csv", ".json", ".xml", ".html"]]
+                if text_files:
+                    data_path = os.path.join(data_path, text_files[0])
+                else:
+                    return {
+                        "success": False,
+                        "error": f"No text files found in directory: {data_path}",
+                        "agent_type": agent_type,
+                        "data_path": data_path
+                    }
+        else:
+            return {
+                "success": False,
+                "error": f"Path does not exist: {data_path}",
+                "agent_type": agent_type,
+                "data_path": data_path
+            }
         
         # Create inputs for the agent
         agent_config = self.agents_config.get(f"{agent_type}_data_specialist" 
@@ -457,12 +511,24 @@ When asked about manipulating dataset schemas, use the schema manipulation tool.
         agent_inputs = {
             "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
             "task_config": task_config.get('description', ''),
-            "input": f"Process the {agent_type} in: {data_path}"
+            "input": f"Process the {agent_type} file at: {data_path}"
         }
         
         # For the audio agent, modify the input to explicitly mention transcription with the file path
         if agent_type == "audio" and os.path.isfile(data_path):
             agent_inputs["input"] = f"Transcribe the audio file at: {data_path}"
+            
+        # For text processing, add additional context about extracting structured data
+        if agent_type == "text":
+            agent_inputs["input"] = f"Process and extract structured information from the document at: {data_path}"
+            
+        # For image processing, focus on OCR and visual information extraction
+        if agent_type == "image":
+            agent_inputs["input"] = f"Analyze the image at {data_path} using OCR to extract text and identify visual elements"
+            
+        # For video processing, focus on content analysis
+        if agent_type == "video":
+            agent_inputs["input"] = f"Analyze the video at {data_path}, extract key frames, and identify important content"
         
         # Run the agent
         try:
@@ -575,10 +641,27 @@ When asked about manipulating dataset schemas, use the schema manipulation tool.
         agent_type = max(hits, key=hits.get)
         return agent_type
     
-    def run(self, query: str) -> Dict[str, Any]:
+    def run(self, query: str, direct_file_path: str = None) -> Dict[str, Any]:
         """Process a user query"""
         # First analyze the query to determine which agent should handle it
         agent_type = self.analyze_query(query)
+        
+        # If a direct file path is provided, use it instead of searching in default directories
+        if direct_file_path and os.path.exists(direct_file_path):
+            # Extract agent type from file extension if not already specified
+            file_ext = os.path.splitext(direct_file_path)[1].lower()
+            if agent_type == 'all' or agent_type not in ["text", "image", "video", "audio"]:
+                if file_ext in [".txt", ".pdf", ".docx", ".md", ".csv", ".json", ".xml", ".html"]:
+                    agent_type = "text"
+                elif file_ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]:
+                    agent_type = "image"
+                elif file_ext in [".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv"]:
+                    agent_type = "video"
+                elif file_ext in [".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg"]:
+                    agent_type = "audio"
+            
+            # Process the specific file with the appropriate agent
+            return self._run_specific_agent(agent_type, direct_file_path)
         
         # Special case for demo purposes - OCR demonstration with sample text
         if (("ocr" in query.lower() or "extract text" in query.lower()) and 

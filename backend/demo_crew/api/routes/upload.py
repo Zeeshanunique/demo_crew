@@ -6,6 +6,16 @@ import uuid
 import time
 import shutil
 import json
+from dotenv import load_dotenv
+import asyncio
+import sys
+
+# Add parent directory to path to ensure imports work
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from demo_crew.master_agent import MasterAgent
 
 # Create router
 router = APIRouter(tags=["Upload"])
@@ -17,31 +27,70 @@ def ensure_upload_dirs():
         os.makedirs(os.path.join(base_dir, folder), exist_ok=True)
     return base_dir
 
-# Function to process files in the background (simulated for now)
+# Function to process files in the background 
 async def process_file(file_path: str, file_type: str, instructions: Optional[str] = None):
     """
-    Process a file based on its type. This would invoke the appropriate AI agents.
-    For demonstration, we'll simulate processing time and return a simple result.
+    Process a file based on its type using the appropriate AI agent.
     """
-    # In a real implementation, this would dispatch to the appropriate CrewAI agent
-    # based on the file type and instructions
+    start_time = time.time()
     
-    # Simulate processing time
-    time.sleep(2)
-    
-    # Generate a result JSON
-    result = {
-        "status": "completed",
-        "file_type": file_type,
-        "original_file": os.path.basename(file_path),
-        "processing_time": "2 seconds",
-        "instructions": instructions if instructions else "No specific instructions provided",
-        "extracted_data": {
-            "sample_key": "This is sample extracted data",
-            "confidence": 0.95,
-            "timestamp": time.time()
+    try:
+        # Load environment variables for OpenAI API key
+        dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), ".env")
+        load_dotenv(dotenv_path)
+        
+        if not os.environ.get("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY environment variable not set. Please set it in a .env file.")
+        
+        # Create a specific query based on the file type and instructions
+        query = f"Process this {file_type} file"
+        if instructions:
+            query += f". Instructions: {instructions}"
+        
+        # Initialize the document graph directly instead of the master agent
+        # This ensures we use the right component for actual file processing
+        from demo_crew.document_graph import DocumentGraph
+        document_graph = DocumentGraph()
+        
+        # Process the file using the document graph with direct file path
+        processing_result = document_graph.run(
+            inputs=None,  # Use default inputs
+            direct_file_path=file_path,
+            file_type=file_type
+        )
+        
+        # Extract the relevant result based on file type
+        output_key = f"{file_type}_processing_result"
+        output = processing_result.get(output_key, "No output generated")
+        
+        # Calculate processing time
+        processing_time = time.time() - start_time
+        
+        # Create result format
+        result = {
+            "status": "completed",
+            "file_type": file_type,
+            "original_file": os.path.basename(file_path),
+            "processing_time": f"{processing_time:.2f} seconds",
+            "instructions": instructions if instructions else "No specific instructions provided",
+            "extracted_data": {
+                "output": output,
+                "agent_type": file_type,
+                "timestamp": time.time(),
+                "processed_file": file_path
+            }
         }
-    }
+        
+    except Exception as e:
+        # Handle any exceptions during processing
+        result = {
+            "status": "failed",
+            "file_type": file_type,
+            "original_file": os.path.basename(file_path),
+            "processing_time": f"{time.time() - start_time:.2f} seconds",
+            "error": str(e),
+            "instructions": instructions if instructions else "No specific instructions provided",
+        }
     
     # Save result to a JSON file
     result_filename = f"{os.path.splitext(os.path.basename(file_path))[0]}_result.json"

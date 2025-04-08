@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "file_type": "text",
+  "original_file": "d53cc998-b8e5-4dee-b0e3-6a7a01f97c2d.pdf",
+  "processing_time": "7.32 seconds",
+  "instructions": "No specific instructions provided",
+  "extracted_data": {
+    "output": "I have extracted structured information from the document. Here are some key points:\n\n1. An emergency meeting has been scheduled for 15:00 today in Conference Room A to discuss next steps. Attendance is mandatory for all department heads.\n2. Documentation for Project Nexus has been removed from the secure database, and unauthorized access using Administrator credentials was detected.\n3. The missing documentation includes sensitive intellectual property related to quantum encryption technology.\n4. Security protocols have been initiated, and external access to the database has been temporarily locked down.\n5. Three new staff members were onboarded to the Project Nexus team: Dr. Alex Rodriguez, Maya Williams, and Thomas Greene.\n\nIf you need more specific information or details, feel free to ask!",
+    "agent_type": "text",
+    "timestamp": 1744095430.9635992,
+    "processed_file": "/workspaces/demo_crew/backend/uploads/text/d53cc998-b8e5-4dee-b0e3-6a7a01f97c2d.pdf"
+  }
+}

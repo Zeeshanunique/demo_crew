@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "file_type": "image",
+  "original_file": "28dccd14-9ace-45a3-81a0-029386b1a6bf.png",
+  "processing_time": "14.76 seconds",
+  "instructions": "No specific instructions provided",
+  "extracted_data": {
+    "output": "I have analyzed the image and extracted the following information:\n\n- Image Dimensions: 640x480\n- Image Format: PNG\n- Image Mode: RGBA\n- Average Color: #e6e6e6 (RGB: 230, 230, 230)\n- Dominant Colors:\n  - #e0e0e0 (RGB: 224, 224, 224) - 75%\n  - #808080 (RGB: 128, 128, 128) - 7%\n  - #c0c0c0 (RGB: 192, 192, 192) - 5%\n  - #a0a0a0 (RGB: 160, 160, 160) - 5%\n  - #606060 (RGB: 96, 96, 96) - 4%\n- Edge Detection:\n  - Edge Density: 0.0605\n  - Edge Image: [View Edges Image](sandbox:/workspaces/demo_crew/backend/uploads/image/28dccd14-9ace-45a3-81a0-029386b1a6bf_edges.jpg)\n- Image Features:\n  - Number of Keypoints: 2007\n  - Keypoint Distribution:\n    - Top Left: 27%\n    - Top Right: 24%\n    - Bottom Left: 27%\n    - Bottom Right: 22%\n  - Structural Features:\n    - Aspect Ratio: 1.33\n    - Resolution: 307200\n\nUnfortunately, there was an error extracting text from the image. Let me know if you need further analysis or assistance.",
+    "agent_type": "image",
+    "timestamp": 1744097041.352134,
+    "processed_file": "/workspaces/demo_crew/backend/uploads/image/28dccd14-9ace-45a3-81a0-029386b1a6bf.png"
+  }
+}

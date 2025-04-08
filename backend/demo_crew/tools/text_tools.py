@@ -113,17 +113,22 @@ class DocumentRAGTool(BaseTool):
         self.chunks = []
         self.source_documents = {}
     
-    def _run(self, query: str, top_k: int = 5) -> Dict[str, Any]:
-        """Search for information in the indexed documents.
+    def _run(self, query: str, top_k: int = 5, single_file: str = None) -> Dict[str, Any]:
+        """Search for information in the indexed documents or process a single file.
         
         Args:
             query: The search query
             top_k: Number of top results to return
+            single_file: Optional path to a single file to process instead of the index
             
         Returns:
-            Dictionary containing search results
+            Dictionary containing search results or processed file content
         """
-        # Ensure index is built
+        # If a single file is provided, process it directly instead of using the index
+        if single_file and os.path.exists(single_file):
+            return self._process_single_file(single_file)
+            
+        # Ensure index is built for regular searches
         if not self.index:
             self._build_index()
         
@@ -149,6 +154,109 @@ class DocumentRAGTool(BaseTool):
             }
         except Exception as e:
             return {'error': f"Error searching documents: {str(e)}"}
+    
+    def _process_single_file(self, file_path: str) -> Dict[str, Any]:
+        """Process a single document file and extract its content.
+        
+        Args:
+            file_path: Path to the file to process
+            
+        Returns:
+            Dictionary containing the extracted content
+        """
+        if not os.path.exists(file_path):
+            return {'error': f"File not found: {file_path}"}
+            
+        try:
+            # Determine the file type based on extension
+            file_extension = os.path.splitext(file_path)[1].lower()
+            
+            # Load document based on file extension
+            if file_extension == '.pdf':
+                try:
+                    loader = PyPDFLoader(file_path)
+                    docs = loader.load()
+                except Exception as pdf_error:
+                    # If PyPDFLoader fails, attempt to use a different PDF loader
+                    from langchain_community.document_loaders import UnstructuredPDFLoader
+                    loader = UnstructuredPDFLoader(file_path)
+                    docs = loader.load()
+            elif file_extension == '.txt':
+                loader = TextLoader(file_path)
+                docs = loader.load()
+            elif file_extension in ['.docx', '.doc']:
+                loader = Docx2txtLoader(file_path)
+                docs = loader.load()
+            else:
+                return {'error': f"Unsupported file type: {file_extension}"}
+            
+            # Combine content from all pages
+            all_content = ""
+            metadata = {}
+            
+            for doc in docs:
+                all_content += doc.page_content + "\n\n"
+                # Merge metadata
+                metadata.update(doc.metadata)
+            
+            # Extract main elements from the content
+            structured_data = self._extract_structured_data(all_content)
+            
+            return {
+                'success': True,
+                'filename': os.path.basename(file_path),
+                'content': all_content.strip(),
+                'metadata': metadata,
+                'structured_data': structured_data,
+                'page_count': len(docs)
+            }
+            
+        except Exception as e:
+            import traceback
+            trace = traceback.format_exc()
+            return {
+                'error': f"Error processing file: {str(e)}",
+                'traceback': trace,
+                'file_path': file_path
+            }
+    
+    def _extract_structured_data(self, content: str) -> Dict[str, Any]:
+        """Extract structured data from document content.
+        
+        Args:
+            content: The document content as text
+            
+        Returns:
+            Dictionary containing extracted structured data
+        """
+        # This is a simple implementation that can be expanded with more sophisticated extraction
+        structured_data = {
+            'summary': content[:500] + "..." if len(content) > 500 else content,
+            'detected_entities': {}
+        }
+        
+        # Simple entity extraction for common patterns
+        # Dates (simple pattern)
+        dates = re.findall(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}(?:st|nd|rd|th)?,? \d{4}\b|\d{1,2}/\d{1,2}/\d{2,4}|\d{4}-\d{2}-\d{2}', content)
+        if dates:
+            structured_data['detected_entities']['dates'] = dates[:10]  # Limit to 10 dates
+            
+        # Email addresses
+        emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content)
+        if emails:
+            structured_data['detected_entities']['emails'] = emails[:10]
+            
+        # Monetary values
+        monetary = re.findall(r'\$\s?\d+(?:,\d+)*(?:\.\d+)?|\d+(?:,\d+)*(?:\.\d+)?\s?(?:dollars|USD|EUR|GBP|JPY)', content)
+        if monetary:
+            structured_data['detected_entities']['monetary_values'] = monetary[:10]
+            
+        # Phone numbers (simple pattern)
+        phones = re.findall(r'(?:\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}', content)
+        if phones:
+            structured_data['detected_entities']['phone_numbers'] = phones[:10]
+            
+        return structured_data
     
     def _build_index(self) -> None:
         """Build a searchable index from documents."""
