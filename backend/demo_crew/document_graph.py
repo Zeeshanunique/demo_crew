@@ -5,6 +5,7 @@ This module replaces the previous CrewAI implementation with a LangGraph workflo
 
 import os
 import yaml
+import time
 from typing import Dict, List, Any, Optional
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -12,6 +13,8 @@ from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.tools import Tool
 from langchain.tools import BaseTool
 from langgraph.graph import StateGraph, END
+from langsmith import Client
+from langsmith.run_trees import RunTree
 
 # Import tools
 from .tools.tool_factory import (
@@ -32,6 +35,17 @@ class DocumentGraph:
         self.agents_config = self._load_config('config/agents.yaml')
         self.tasks_config = self._load_config('config/tasks.yaml')
         
+        # Set up LangSmith tracing if environment variables are available
+        self.tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
+        if self.tracing_enabled:
+            self.langsmith_client = Client(
+                api_key=os.getenv("LANGCHAIN_API_KEY"),
+                api_url=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+            )
+            print("LangSmith tracing enabled. Runs will be logged to LangSmith.")
+        else:
+            print("LangSmith tracing disabled. Set LANGCHAIN_TRACING_V2=true to enable.")
+            
         # Initialize model for the agents
         self.model = ChatOpenAI(temperature=0)
         

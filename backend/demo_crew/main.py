@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Dict, Any
 from dotenv import load_dotenv
 
+# Import LangSmith integration
+from demo_crew.langsmith_integration import setup_langsmith, track_agent_performance
 from demo_crew.document_graph import DocumentGraph
 from demo_crew.master_agent import MasterAgent
 
@@ -64,6 +66,9 @@ def run_workflow():
     # Load environment variables from .env file
     load_environment()
     
+    # Set up LangSmith for tracing and monitoring
+    langsmith_client = setup_langsmith()
+    
     # Verify API key is available
     if not os.environ.get("OPENAI_API_KEY"):
         raise ValueError("OPENAI_API_KEY environment variable not set. Please set it in a .env file or export it directly.")
@@ -85,12 +90,29 @@ def run_workflow():
         document_graph = DocumentGraph()
         result = document_graph.run(inputs)
         
+        # Log performance metrics to LangSmith if available
+        if langsmith_client and 'final_output' in result and 'accuracy_metrics' in result['final_output']:
+            # Get run ID if available (in LangGraph 0.0.27+, this is included in the result)
+            run_id = result.get('run_id', None)
+            if run_id:
+                track_agent_performance(
+                    langsmith_client,
+                    run_id,
+                    "workflow",
+                    result['final_output']['accuracy_metrics']
+                )
+        
         print("\n=== Document Processing Complete ===")
         print(f"Text Processing Result: {result.get('text_processing_result', 'N/A')[:100]}...")
         print(f"Image Processing Result: {result.get('image_processing_result', 'N/A')[:100]}...")
         print(f"Video Processing Result: {result.get('video_processing_result', 'N/A')[:100]}...")
         print(f"Audio Processing Result: {result.get('audio_processing_result', 'N/A')[:100]}...")
         print(f"Output saved to: processed_data.json")
+        
+        # If LangSmith is enabled, provide a link to the traced run
+        if langsmith_client and 'run_id' in result:
+            print(f"\nView the traced run in LangSmith: https://smith.langchain.com/runs/{result['run_id']}")
+        
         return result
     except Exception as e:
         raise Exception(f"An error occurred while running the workflow: {e}")
@@ -109,6 +131,9 @@ def process_user_query(query: str, direct_file_path: str = None) -> Dict[str, An
     # Load environment variables from .env file
     load_environment()
     
+    # Set up LangSmith for tracing and monitoring
+    langsmith_client = setup_langsmith()
+    
     # Verify API key is available
     if not os.environ.get("OPENAI_API_KEY"):
         raise ValueError("OPENAI_API_KEY environment variable not set. Please set it in a .env file or export it directly.")
@@ -119,7 +144,13 @@ def process_user_query(query: str, direct_file_path: str = None) -> Dict[str, An
     try:
         # Initialize the master agent and process the query
         master_agent = MasterAgent()
-        return master_agent.run(query, direct_file_path=direct_file_path)
+        result = master_agent.run(query, direct_file_path=direct_file_path)
+        
+        # If LangSmith is enabled and run_id is available, provide a link
+        if langsmith_client and hasattr(result, 'run_id'):
+            print(f"\nView the traced run in LangSmith: https://smith.langchain.com/runs/{result.run_id}")
+        
+        return result
     except Exception as e:
         raise Exception(f"An error occurred while processing the query: {e}")
 
@@ -137,6 +168,9 @@ def manipulate_dataset_schema(dataset_path: str, schema_changes: list, output_pa
     """
     # Load environment variables from .env file
     load_environment()
+    
+    # Set up LangSmith for tracing and monitoring
+    langsmith_client = setup_langsmith()
     
     # Verify API key is available
     if not os.environ.get("OPENAI_API_KEY"):
@@ -173,6 +207,15 @@ def parse_arguments():
     schema_parser.add_argument("changes_file", help="Path to a JSON file with schema changes")
     schema_parser.add_argument("--output", help="Output file path (optional)")
     
+    # Add LangSmith specific commands
+    langsmith_parser = subparsers.add_parser("langsmith", help="LangSmith related commands")
+    langsmith_subparsers = langsmith_parser.add_subparsers(dest="langsmith_command")
+    
+    # Command to create a dataset from completed runs
+    dataset_parser = langsmith_subparsers.add_parser("create-dataset", help="Create a dataset from completed runs")
+    dataset_parser.add_argument("name", help="Name of the dataset")
+    dataset_parser.add_argument("--max-runs", type=int, default=10, help="Maximum number of runs to include")
+    
     return parser.parse_args()
 
 def main():
@@ -196,6 +239,44 @@ def main():
         # Manipulate the dataset schema
         result = manipulate_dataset_schema(args.dataset, changes, args.output)
         print(json.dumps(result, indent=2))
+        
+    elif args.command == "langsmith":
+        # Handle LangSmith commands
+        if args.langsmith_command == "create-dataset":
+            # Set up LangSmith
+            langsmith_client = setup_langsmith()
+            
+            if not langsmith_client:
+                print("LangSmith is not properly configured. Please set LANGCHAIN_API_KEY and LANGCHAIN_TRACING_V2=true")
+                return
+                
+            # Get recent runs
+            try:
+                project_name = os.environ.get("LANGCHAIN_PROJECT", "demo_crew")
+                runs = list(langsmith_client.list_runs(
+                    project_name=project_name,
+                    execution_order=1,  # 1 for ascending, -1 for descending
+                    limit=args.max_runs
+                ))
+                
+                if not runs:
+                    print(f"No runs found in project {project_name}")
+                    return
+                    
+                # Create dataset from runs
+                from demo_crew.langsmith_integration import create_evaluation_dataset
+                dataset_id = create_evaluation_dataset(
+                    langsmith_client,
+                    [run.id for run in runs],
+                    args.name,
+                    f"Dataset created from {len(runs)} runs in project {project_name}"
+                )
+                
+                if dataset_id:
+                    print(f"Created dataset {args.name} with ID {dataset_id}")
+                    print(f"View dataset: https://smith.langchain.com/datasets/{dataset_id}")
+            except Exception as e:
+                print(f"Error creating dataset: {e}")
     
     else:
         # Default to running the workflow
