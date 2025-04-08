@@ -68,13 +68,13 @@ def get_web_search_tool() -> BaseTool:
 def get_ocr_tool() -> BaseTool:
     """Get the OCR tool if available, or a fallback."""
     try:
-        from .text_tools import OCRTool
-        return OCRTool()
+        from .image_tools import MistralOCRTool
+        return MistralOCRTool()
     except ImportError:
         return FallbackTool(
-            name="OCRTool",
-            description="Extracts text from images",
-            missing_dependency="paddleocr"
+            name="MistralOCRTool",
+            description="Extracts text from images using Mistral",
+            missing_dependency="mistral"
         )
 
 

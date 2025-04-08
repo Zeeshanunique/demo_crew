@@ -93,20 +93,21 @@ class DocumentRAGTool(BaseTool):
     
     name: str = "DocumentRAGTool"
     description: str = "Searches through documents to find relevant information using retrieval-augmented generation"
-    documents_dir: str = "knowledge"
+    documents_dir: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "documents")
     index: Optional[Any] = None
     embeddings: Any = None
     chunks: List = []
     source_documents: Dict = {}
     
-    def __init__(self, documents_dir: str = "knowledge"):
+    def __init__(self, documents_dir: str = None):
         """Initialize the document RAG tool.
         
         Args:
             documents_dir: Directory containing documents to index
         """
         super().__init__()
-        self.documents_dir = documents_dir
+        if documents_dir:
+            self.documents_dir = documents_dir
         self.index = None
         self.embeddings = OpenAIEmbeddings()
         self.chunks = []

@@ -8,6 +8,7 @@ class WhisperTranscriptionTool(BaseTool):
     
     name: str = "WhisperTranscriptionTool"
     description: str = "Transcribes audio files using Whisper to extract spoken content"
+    model: Any = None  # Adding the model field declaration so Pydantic won't raise an error
     
     def __init__(self, model_size: str = "base"):
         """Initialize the Whisper transcription tool.
