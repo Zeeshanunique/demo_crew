@@ -1,12 +1,1 @@
-{
-  "status": "completed",
-  "file_type": "text",
-  "original_file": "2caf4517-9d54-4194-bfcf-a0e44cd8955c.pdf",
-  "processing_time": "2 seconds",
-  "instructions": "No specific instructions provided",
-  "extracted_data": {
-    "sample_key": "This is sample extracted data",
-    "confidence": 0.95,
-    "timestamp": 1744093341.8909488
-  }
-}
+{}

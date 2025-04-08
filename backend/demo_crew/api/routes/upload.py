@@ -47,14 +47,13 @@ async def process_file(file_path: str, file_type: str, instructions: Optional[st
         if instructions:
             query += f". Instructions: {instructions}"
         
-        # Initialize the document graph directly instead of the master agent
-        # This ensures we use the right component for actual file processing
+        # Initialize and use document graph directly for file processing
         from demo_crew.document_graph import DocumentGraph
         document_graph = DocumentGraph()
         
         # Process the file using the document graph with direct file path
         processing_result = document_graph.run(
-            inputs=None,  # Use default inputs
+            inputs={},  # Empty inputs, we'll specify the file directly
             direct_file_path=file_path,
             file_type=file_type
         )
@@ -82,6 +81,7 @@ async def process_file(file_path: str, file_type: str, instructions: Optional[st
         }
         
     except Exception as e:
+        import traceback
         # Handle any exceptions during processing
         result = {
             "status": "failed",
@@ -89,6 +89,7 @@ async def process_file(file_path: str, file_type: str, instructions: Optional[st
             "original_file": os.path.basename(file_path),
             "processing_time": f"{time.time() - start_time:.2f} seconds",
             "error": str(e),
+            "traceback": traceback.format_exc(),
             "instructions": instructions if instructions else "No specific instructions provided",
         }
     

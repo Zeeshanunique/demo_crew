@@ -232,7 +232,66 @@ class DocumentGraph:
         file_type = state.get('file_type')
         
         if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'image':
-            # Process the specific image file
+            # Try direct OCR processing first
+            try:
+                from .tools.image_tools import ImageAnalysisTool
+                image_tool = ImageAnalysisTool()
+                image_result = image_tool._run(
+                    direct_file_path, 
+                    extract_text=True, 
+                    analyze_colors=True,
+                    detect_edges=False,
+                    extract_features=True
+                )
+                
+                if 'error' not in image_result:
+                    # Format the OCR result for output
+                    output = "I've analyzed the image and extracted the following information:\n\n"
+                    
+                    # Add text extraction results
+                    if 'text_extraction' in image_result and 'full_text' in image_result['text_extraction']:
+                        extracted_text = image_result['text_extraction']['full_text']
+                        if extracted_text:
+                            output += f"## Extracted Text\n{extracted_text}\n\n"
+                        else:
+                            output += "No text was detected in the image.\n\n"
+                    
+                    # Add color analysis
+                    if 'color_analysis' in image_result and 'dominant_colors' in image_result['color_analysis']:
+                        colors = image_result['color_analysis']['dominant_colors']
+                        output += "## Color Analysis\n"
+                        output += "Dominant colors in the image:\n"
+                        for idx, color in enumerate(colors[:3], 1):
+                            percentage = round(color['frequency'] * 100, 1)
+                            output += f"{idx}. {color['hex']} ({percentage}% of image)\n"
+                        output += "\n"
+                    
+                    # Add image features
+                    if 'image_features' in image_result:
+                        features = image_result['image_features']
+                        output += "## Image Properties\n"
+                        if 'dimensions' in features:
+                            dims = features['dimensions']
+                            output += f"Dimensions: {dims.get('width', 0)}x{dims.get('height', 0)}\n"
+                            output += f"Aspect ratio: {dims.get('aspect_ratio', 0):.2f}\n"
+                        if 'brightness' in features:
+                            output += f"Brightness: {features['brightness']:.1f}/255\n"
+                        if 'contrast' in features:
+                            output += f"Contrast: {features['contrast']:.1f}\n"
+                        output += f"File size: {features.get('file_size_kb', 0):.1f} KB\n\n"
+                    
+                    # Update state with result
+                    new_state = state.copy()
+                    new_state["image_processing_result"] = output
+                    return new_state
+                
+            except Exception as e:
+                import traceback
+                trace = traceback.format_exc()
+                print(f"Error in direct image processing: {str(e)}\n{trace}")
+                # Continue to agent-based processing
+            
+            # Process the specific image file using agent
             agent_inputs = {
                 "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
                 "task_config": task_config.get('description', ''),
@@ -271,7 +330,63 @@ class DocumentGraph:
         file_type = state.get('file_type')
         
         if direct_file_path and os.path.isfile(direct_file_path) and file_type == 'video':
-            # Process the specific video file
+            # Process the specific video file directly first
+            try:
+                print(f"Processing video file: {direct_file_path}")
+                from .tools.video_tools import VideoPyDLPTool
+                video_tool = VideoPyDLPTool()
+                # Initialize output variable before using it
+                output = "I've analyzed the video and extracted the following information:\n\n"
+                # Explicitly set extract_audio=True to ensure audio extraction
+                video_result = video_tool._run(direct_file_path, extract_frames=True, extract_audio=True)
+                
+                if 'error' not in video_result:
+                    
+                    # Add metadata about the video
+                    if 'metadata' in video_result:
+                        meta = video_result['metadata']
+                        output += f"## Video Properties\n"
+                        output += f"Duration: {meta.get('duration_seconds', 0):.2f} seconds\n"
+                        output += f"Resolution: {meta.get('width', 0)}x{meta.get('height', 0)}\n"
+                        output += f"Frame rate: {meta.get('fps', 0):.2f} fps\n"
+                        output += f"Total frames: {meta.get('frame_count', 0)}\n\n"
+                    
+                    # Add audio transcription if available
+                    if 'audio' in video_result and 'transcript' in video_result['audio'] and video_result['audio']['transcript']:
+                        output += f"## Audio Transcript\n"
+                        output += video_result['audio']['transcript']
+                        output += "\n\n"
+                        
+                        # Add language detection if available
+                        if 'language' in video_result['audio']:
+                            output += f"Detected language: {video_result['audio']['language']}\n\n"
+                    
+                    # Add key frames info if available
+                    if 'frames' in video_result and video_result['frames']:
+                        output += f"## Key Frames\n"
+                        output += f"Extracted {len(video_result['frames'])} key frames at the following timestamps:\n"
+                        for i, frame in enumerate(video_result['frames']):
+                            output += f"{i+1}. {frame.get('timestamp', 0):.2f}s\n"
+                        output += "\n"
+                    
+                    # Update state with result
+                    new_state = state.copy()
+                    new_state["video_processing_result"] = output
+                    return new_state
+                    
+                else:
+                    print(f"Error in direct video processing: {video_result.get('error', 'Unknown error')}")
+                    if 'traceback' in video_result:
+                        print(video_result['traceback'])
+                    # Continue to agent-based processing
+                
+            except Exception as e:
+                import traceback
+                trace = traceback.format_exc()
+                print(f"Error in direct video processing: {str(e)}\n{trace}")
+                # Continue to agent-based processing
+            
+            # Process the specific video file using agent as fallback
             agent_inputs = {
                 "agent_config": f"Role: {agent_config.get('role', '')}\nGoal: {agent_config.get('goal', '')}\nBackstory: {agent_config.get('backstory', '')}",
                 "task_config": task_config.get('description', ''),

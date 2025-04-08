@@ -1,12 +1,1 @@
-{
-  "status": "completed",
-  "file_type": "text",
-  "original_file": "f1cad5a1-af44-40a0-b89e-574af39d2add.pdf",
-  "processing_time": "8.08 seconds",
-  "instructions": "No specific instructions provided",
-  "extracted_data": {
-    "output": "I have extracted structured information from the document. Here are some key points:\n\n1. An emergency meeting has been scheduled for 15:00 today in Conference Room A to discuss next steps. Attendance is mandatory for all department heads.\n2. Documentation for Project Nexus has been removed from the secure database without authorization. The missing documentation includes sensitive intellectual property related to quantum encryption technology.\n3. Security protocols have been initiated, and external access to the database has been temporarily locked down. The IT security team is investigating access logs and system activities.\n4. Department heads are requested to review team members' whereabouts, unusual access requests, and suspend sharing Project Nexus information. Three new staff members have been onboarded to the Project Nexus team.\n5. System logs show login, access, and logout activities related to Project Nexus documentation and financial reports.\n\nIf you need more specific details or further analysis, feel free to let me know!",
-    "agent_type": "text",
-    "timestamp": 1744094999.268303
-  }
-}
+{}

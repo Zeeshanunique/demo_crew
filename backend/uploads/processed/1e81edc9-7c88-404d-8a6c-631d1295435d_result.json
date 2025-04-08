@@ -1,12 +1,1 @@
-{
-  "status": "completed",
-  "file_type": "audio",
-  "original_file": "1e81edc9-7c88-404d-8a6c-631d1295435d.wav",
-  "processing_time": "2 seconds",
-  "instructions": "No specific instructions provided",
-  "extracted_data": {
-    "sample_key": "This is sample extracted data",
-    "confidence": 0.95,
-    "timestamp": 1744093390.073694
-  }
-}
+{}
