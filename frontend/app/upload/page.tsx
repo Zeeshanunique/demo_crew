@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import axios from 'axios';
 import {
   Card,
   CardContent,
@@ -16,6 +17,16 @@ export default function UploadPage() {
   const [selectedType, setSelectedType] = useState('text');
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [instructions, setInstructions] = useState('');
+  const [uploadStatus, setUploadStatus] = useState<null | {
+    status: string;
+    message?: string;
+    fileId?: string;
+    resultUrl?: string;
+    result?: any;
+  }>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -44,16 +55,97 @@ export default function UploadPage() {
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+      const selectedFile = e.target.files[0];
+      setFileName(selectedFile.name);
+      setFile(selectedFile);
+      setUploadStatus(null); // Reset status when file changes
     }
   };
 
-  // Mock upload process
-  const handleUpload = () => {
-    setIsUploading(true);
-    setTimeout(() => {
+  // Handle instruction changes
+  const handleInstructionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInstructions(e.target.value);
+  };
+
+  // Poll for status updates
+  const pollStatus = async (fileId: string) => {
+    try {
+      const response = await axios.get(`/api/status/${fileId}`);
+      const data = response.data;
+      
+      setUploadStatus(data);
+      
+      if (data.status === 'processing') {
+        // Continue polling if still processing
+        setTimeout(() => pollStatus(fileId), 1000);
+      } else {
+        // Done processing
+        setIsUploading(false);
+      }
+    } catch (error) {
+      console.error('Error checking status:', error);
+      setUploadStatus({
+        status: 'error',
+        message: 'Failed to check processing status'
+      });
       setIsUploading(false);
-    }, 2000);
+    }
+  };
+
+  // Upload file to backend
+  const handleUpload = async () => {
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadStatus({
+      status: 'uploading',
+      message: 'Uploading file...'
+    });
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('file_type', selectedType);
+      if (instructions.trim()) {
+        formData.append('instructions', instructions);
+      }
+      
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      const data = response.data;
+      
+      setUploadStatus({
+        status: 'processing',
+        message: 'File uploaded, processing...',
+        fileId: data.file_id
+      });
+      
+      // Start polling for status
+      pollStatus(data.file_id);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      setUploadStatus({
+        status: 'error',
+        message: 'Failed to upload file. Please try again.'
+      });
+    }
+  };
+
+  // Reset the form
+  const handleReset = () => {
+    setFileName('');
+    setFile(null);
+    setInstructions('');
+    setUploadStatus(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -206,7 +298,13 @@ export default function UploadPage() {
                       <span className="text-white text-lg">{fileName}</span>
                       <button 
                         className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                        onClick={() => setFileName('')}
+                        onClick={() => {
+                          setFileName('');
+                          setFile(null);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
                       >
                         Remove file
                       </button>
@@ -218,6 +316,7 @@ export default function UploadPage() {
                           <span>Upload a file</span>
                           <input 
                             id="file-upload" 
+                            ref={fileInputRef}
                             name="file-upload" 
                             type="file" 
                             className="sr-only" 
@@ -251,15 +350,64 @@ export default function UploadPage() {
                       selectedType === 'video' ? "e.g., Identify speakers and create timestamps for key topics" :
                       "e.g., Transcribe all speakers and identify questions vs answers"
                     }
+                    value={instructions}
+                    onChange={handleInstructionChange}
                   ></textarea>
                 </div>
               </div>
+              
+              {/* Processing Status */}
+              {uploadStatus && (
+                <div className={`p-4 rounded-lg ${
+                  uploadStatus.status === 'error' ? 'bg-red-900/40 border border-red-700' : 
+                  uploadStatus.status === 'completed' ? 'bg-green-900/40 border border-green-700' : 
+                  'bg-blue-900/40 border border-blue-700'
+                }`}>
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    {uploadStatus.status === 'error' ? 'Error' : 
+                     uploadStatus.status === 'uploading' ? 'Uploading' :
+                     uploadStatus.status === 'processing' ? 'Processing' : 
+                     'Completed'}
+                  </h3>
+                  
+                  <p className="text-gray-300">{uploadStatus.message}</p>
+                  
+                  {uploadStatus.status === 'completed' && uploadStatus.result && (
+                    <div className="mt-4">
+                      <h4 className="text-md font-semibold text-white mb-2">Results:</h4>
+                      <div className="bg-gray-900 p-3 rounded overflow-auto max-h-60">
+                        <pre className="text-gray-300 text-sm whitespace-pre-wrap">
+                          {JSON.stringify(uploadStatus.result, null, 2)}
+                        </pre>
+                      </div>
+                      
+                      {uploadStatus.resultUrl && (
+                        <a 
+                          href={uploadStatus.resultUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-block mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        >
+                          Download Results
+                        </a>
+                      )}
+                      
+                      <button
+                        onClick={handleReset}
+                        className="inline-block mt-4 ml-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                      >
+                        Process Another File
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="pt-2 pb-8 px-8">
               <Button 
                 className="w-full py-6 text-lg bg-blue-600 hover:bg-blue-700 group relative overflow-hidden transition-all duration-300"
                 onClick={handleUpload}
-                disabled={!fileName || isUploading}
+                disabled={!file || isUploading || (uploadStatus?.status === 'completed')}
               >
                 <span className="relative z-10 flex items-center justify-center">
                   {isUploading ? (
@@ -268,7 +416,7 @@ export default function UploadPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Processing...
+                      {uploadStatus?.status === 'uploading' ? 'Uploading...' : 'Processing...'}
                     </>
                   ) : (
                     <>
