@@ -29,18 +29,79 @@ export default function DatasetChat({ dataset, apiKey }: DatasetChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [apiKeyInput, setApiKeyInput] = useState(apiKey || '');
   const [keySet, setKeySet] = useState(!!apiKey);
+  const [apiKeyLoading, setApiKeyLoading] = useState<boolean>(true);
 
   // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Save API key
+  // Fetch API key from the server
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        // Skip if we already have an API key from props
+        if (apiKey) {
+          setApiKeyInput(apiKey);
+          setKeySet(true);
+          setApiKeyLoading(false);
+          return;
+        }
+
+        setApiKeyLoading(true);
+        const response = await fetch('/api/config');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch API key configuration');
+        }
+        
+        const data = await response.json();
+        
+        if (data.apiKey) {
+          setApiKeyInput(data.apiKey);
+          setKeySet(true);
+          // Store in localStorage as a fallback
+          try {
+            localStorage.setItem('gemini_api_key', data.apiKey);
+          } catch (e) {
+            console.error('Failed to store API key');
+          }
+        } else {
+          // Fall back to localStorage if server doesn't provide a key
+          try {
+            const savedApiKey = localStorage.getItem('gemini_api_key');
+            if (savedApiKey) {
+              setApiKeyInput(savedApiKey);
+              setKeySet(true);
+            }
+          } catch (e) {
+            console.error('Failed to load API key from localStorage');
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching API key from server:', e);
+        // Fall back to localStorage
+        try {
+          const savedApiKey = localStorage.getItem('gemini_api_key');
+          if (savedApiKey) {
+            setApiKeyInput(savedApiKey);
+            setKeySet(true);
+          }
+        } catch (localStorageError) {
+          console.error('Failed to load API key from localStorage', localStorageError);
+        }
+      } finally {
+        setApiKeyLoading(false);
+      }
+    };
+
+    fetchApiKey();
+  }, [apiKey]);
+
+  // Keep this function for manual override if needed
   const saveApiKey = () => {
     if (apiKeyInput.trim()) {
       setKeySet(true);
-      // Avoid storing API keys in client-side localStorage in a real app
-      // This is just for the demo
       try {
         localStorage.setItem('gemini_api_key', apiKeyInput);
       } catch (e) {
@@ -62,8 +123,20 @@ export default function DatasetChat({ dataset, apiKey }: DatasetChatProps) {
       // Initialize the Google Generative AI with the API key
       const genAI = new GoogleGenerativeAI(apiKeyInput);
       
-      // Create the prompt for the AI
-      const datasetJson = JSON.stringify(dataset, null, 2);
+      // Create the prompt for the AI - limit dataset size if needed
+      let datasetJson;
+      try {
+        // Limit dataset size if it's very large
+        const simplifiedDataset = {
+          ...dataset,
+          results: dataset.results?.slice(0, 10) || [] // Only include first 10 results if array is large
+        };
+        datasetJson = JSON.stringify(simplifiedDataset, null, 2);
+      } catch (jsonError) {
+        console.error('Error stringifying dataset:', jsonError);
+        datasetJson = '{"error": "Dataset too large to process"}';
+      }
+      
       const prompt = `
         You are a helpful assistant that can analyze and provide insights about a dataset.
         Here is the current dataset in JSON format:
@@ -78,13 +151,29 @@ export default function DatasetChat({ dataset, apiKey }: DatasetChatProps) {
       `;
       
       // Get a response from Gemini
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent(prompt);
-      const response = result.response.text();
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      // Add the response to the messages
-      const assistantMessage: Message = { role: 'assistant', content: response };
-      setMessages(prev => [...prev, assistantMessage]);
+      try {
+        const result = await model.generateContent(prompt);
+        const response = result.response.text();
+        
+        // Add the response to the messages
+        const assistantMessage: Message = { role: 'assistant', content: response };
+        setMessages(prev => [...prev, assistantMessage]);
+      } catch (modelError: any) {
+        console.error('Specific Gemini API error:', modelError);
+        
+        // Provide more specific error messages
+        if (modelError.message?.includes('API key')) {
+          setError('Invalid API key. Please check your Gemini API key and try again.');
+        } else if (modelError.message?.includes('quota') || modelError.message?.includes('rate limit')) {
+          setError('API quota exceeded. Please try again later or check your Gemini API usage limits.');
+        } else if (modelError.message?.includes('content filtered')) {
+          setError('Your request was filtered by the AI content policy. Please modify your question and try again.');
+        } else {
+          setError(`Failed to get a response from the AI: ${modelError.message || 'Unknown error'}`);
+        }
+      }
     } catch (err) {
       console.error('Error querying Generative AI:', err);
       setError('Failed to get a response from the AI. Please check your API key and try again.');
@@ -109,11 +198,18 @@ export default function DatasetChat({ dataset, apiKey }: DatasetChatProps) {
         </CardDescription>
       </CardHeader>
       
-      {!keySet ? (
+      {apiKeyLoading ? (
+        <CardContent className="flex-grow overflow-hidden flex flex-col">
+          <div className="text-center flex-grow flex flex-col items-center justify-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="text-gray-400">Loading API configuration...</p>
+          </div>
+        </CardContent>
+      ) : !keySet ? (
         <CardContent className="flex-grow overflow-hidden flex flex-col">
           <div className="text-center flex-grow flex flex-col items-center justify-center space-y-4">
             <p className="text-gray-400">
-              To use the chat assistant, you need to enter your Google Generative AI (Gemini) API key.
+              To use the chat assistant, you need a Google Generative AI (Gemini) API key.
             </p>
             <div className="flex w-full max-w-md space-x-2">
               <input

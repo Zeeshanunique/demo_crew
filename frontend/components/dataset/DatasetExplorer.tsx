@@ -87,7 +87,7 @@ export default function DatasetExplorer({ initialDataset }: DatasetExplorerProps
         <TabsList className="mb-6">
           <TabsTrigger value="view">View Dataset</TabsTrigger>
           <TabsTrigger value="chat">Chat with Dataset</TabsTrigger>
-          <TabsTrigger value="manipulate">Manipulate Dataset</TabsTrigger>
+          <TabsTrigger value="manipulate">Update Dataset</TabsTrigger>
         </TabsList>
         
         <TabsContent value="view" className="mt-0">

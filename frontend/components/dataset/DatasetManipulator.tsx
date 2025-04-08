@@ -22,19 +22,54 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
   const [result, setResult] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [apiKeyLoading, setApiKeyLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Try to load API key from localStorage
-    try {
-      const savedApiKey = localStorage.getItem('gemini_api_key');
-      if (savedApiKey) {
-        setApiKey(savedApiKey);
+    // Fetch API key from the server
+    const fetchApiKey = async () => {
+      try {
+        setApiKeyLoading(true);
+        const response = await fetch('/api/config');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch API key configuration');
+        }
+        
+        const data = await response.json();
+        
+        if (data.apiKey) {
+          setApiKey(data.apiKey);
+          // Store in localStorage as a fallback
+          localStorage.setItem('gemini_api_key', data.apiKey);
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        } else {
+          // Fall back to localStorage if server doesn't provide a key
+          const savedApiKey = localStorage.getItem('gemini_api_key');
+          if (savedApiKey) {
+            setApiKey(savedApiKey);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching API key from server:', e);
+        // Fall back to localStorage if server request fails
+        try {
+          const savedApiKey = localStorage.getItem('gemini_api_key');
+          if (savedApiKey) {
+            setApiKey(savedApiKey);
+          }
+        } catch (localStorageError) {
+          console.error('Failed to load API key from localStorage', localStorageError);
+        }
+      } finally {
+        setApiKeyLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to load API key from localStorage');
-    }
+    };
+
+    fetchApiKey();
   }, []);
 
+  // Keep this function for manual override if needed
   const handleSaveApiKey = () => {
     try {
       localStorage.setItem('gemini_api_key', apiKey);
@@ -45,9 +80,9 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
     }
   };
 
-  const handleManipulateDataset = async () => {
+  const handleUpdateDataset = async () => {
     if (!apiKey || !prompt) {
-      setError('Please provide both an API key and a manipulation prompt');
+      setError('Please provide both an API key and a update prompt');
       return;
     }
 
@@ -57,22 +92,22 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       // Create a prompt that includes the dataset and the user's instructions
       const datasetJson = JSON.stringify(dataset, null, 2);
       const fullPrompt = `
-        You are a data manipulation assistant. I have a dataset in JSON format that I want you to manipulate.
+        You are a data update assistant. I have a dataset in JSON format that I want you to update.
         
         Here is the dataset:
         \`\`\`json
         ${datasetJson}
         \`\`\`
         
-        Instructions for manipulation:
+        Instructions for update:
         ${prompt}
         
-        Please provide the resulting JSON after manipulation. Only return valid JSON that follows the same structure as the input (with "results" array containing objects with "output" and "agent_type" fields), nothing else.
+        Please provide the resulting JSON after update. Only return valid JSON that follows the same structure as the input (with "results" array containing objects with "output" and "agent_type" fields), nothing else.
       `;
 
       const result = await model.generateContent(fullPrompt);
@@ -109,43 +144,52 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Dataset Manipulator</CardTitle>
+        <CardTitle>Dataset Update</CardTitle>
         <CardDescription>
-          Use AI to transform, filter, or analyze your dataset
+          Use AI to transform, filter, or update your dataset
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Google AI API Key</label>
-          <div className="flex space-x-2">
-            <Input
-              type="password"
-              placeholder="Enter your Google AI API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={handleSaveApiKey} disabled={!apiKey}>
-              {success ? <Check className="h-4 w-4" /> : 'Save'}
-            </Button>
+        {/* Show API key field only if server didn't provide one */}
+        {(!apiKey || apiKeyLoading) && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Google AI API Key</label>
+            <div className="flex space-x-2">
+              <Input
+                type="password"
+                placeholder={apiKeyLoading ? "Loading API key..." : "Enter your Google AI API Key"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="flex-1"
+                disabled={apiKeyLoading}
+              />
+              <Button onClick={handleSaveApiKey} disabled={!apiKey || apiKeyLoading}>
+                {success ? <Check className="h-4 w-4" /> : 'Save'}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {apiKeyLoading 
+                ? "Fetching API key from server configuration..."
+                : "Required for dataset manipulation. Get a key at ai.google.dev"}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Required for dataset manipulation. Get a key at{' '}
-            <a 
-              href="https://ai.google.dev/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
-            >
-              ai.google.dev
-            </a>
-          </p>
-        </div>
+        )}
+
+        {/* Show API key status if one was found */}
+        {apiKey && !apiKeyLoading && (
+          <Alert className="bg-green-900/20 border-green-800">
+            <Check className="h-4 w-4 text-green-500" />
+            <AlertTitle>API Key Configured</AlertTitle>
+            <AlertDescription>
+              Your Gemini API key has been successfully configured.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div>
-          <label className="block text-sm font-medium mb-1">Manipulation Instructions</label>
+          <label className="block text-sm font-medium mb-1">Update Instructions</label>
           <Textarea
-            placeholder="Enter instructions for how to manipulate the dataset (e.g., 'Filter results to only include image data', 'Summarize each output to 50 words or less')"
+            placeholder="Enter instructions for how to update the dataset (e.g., 'Filter results to only include image data', 'Summarize each output to 50 words or less')"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={4}
@@ -171,7 +215,7 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
       </CardContent>
       <CardFooter>
         <Button 
-          onClick={handleManipulateDataset} 
+          onClick={handleUpdateDataset} 
           disabled={loading || !apiKey || !prompt}
           className="w-full"
         >
@@ -181,7 +225,7 @@ export default function DatasetManipulator({ dataset, onDatasetUpdated }: Datase
               Processing...
             </>
           ) : (
-            'Manipulate Dataset'
+            'Update Dataset'
           )}
         </Button>
       </CardFooter>
