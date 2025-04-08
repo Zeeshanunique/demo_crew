@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -508,6 +509,14 @@ export default function UploadPage() {
                           Download Results
                         </a>
                       )}
+                      
+                      <Link href="/dataset">
+                        <button 
+                          className="inline-block mt-4 ml-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                        >
+                          Explore Dataset
+                        </button>
+                      </Link>
                       
                       <button
                         onClick={handleReset}
