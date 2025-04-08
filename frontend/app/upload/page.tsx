@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import Link from 'next/link';
+import { useAuth, SignIn } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -15,6 +17,8 @@ import {
 } from '@/components/ui/card';
 
 export default function UploadPage() {
+  const { isLoaded, userId, sessionId } = useAuth();
+  const router = useRouter();
   const [selectedType, setSelectedType] = useState('text');
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -52,6 +56,33 @@ export default function UploadPage() {
       },
     },
   };
+
+  // If authentication is not loaded yet, show a loading state
+  if (!isLoaded) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center py-16 px-8 bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="text-center">
+          <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h2 className="text-2xl font-bold text-white">Loading...</h2>
+        </div>
+      </main>
+    );
+  }
+
+  // If user is not authenticated, show sign-in component
+  if (!userId) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center py-16 px-8 bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="max-w-md w-full p-8 bg-gray-800 border border-gray-700 rounded-xl shadow-xl">
+          <h2 className="text-2xl font-bold text-white text-center mb-8">Sign In to Upload</h2>
+          <p className="text-gray-300 mb-6 text-center">Please sign in to access the document upload functionality</p>
+          <div className="flex justify-center">
+            <SignIn redirectUrl="/upload" />
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +138,7 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('file_type', selectedType);
+      formData.append('user_id', userId); // Add user ID to associate uploads with user
       if (instructions.trim()) {
         formData.append('instructions', instructions);
       }

@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { UserButton, SignInButton, useUser } from '@clerk/nextjs'
+import { Button } from '@/components/ui/button'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -12,6 +14,8 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children, navItems }: MainLayoutProps) {
+  const { isSignedIn, user } = useUser();
+  
   return (
     <>
       {/* Background animation elements */}
@@ -61,6 +65,23 @@ export default function MainLayout({ children, navItems }: MainLayoutProps) {
                   </Link>
                 </motion.div>
               ))}
+              
+              <div className="ml-4 flex items-center">
+                {!isSignedIn ? (
+                  <SignInButton mode="modal">
+                    <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500/10">
+                      Sign In
+                    </Button>
+                  </SignInButton>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    {user?.fullName && (
+                      <span className="text-sm text-gray-300">Hi, {user.fullName.split(' ')[0]}</span>
+                    )}
+                    <UserButton afterSignOutUrl="/" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </nav>

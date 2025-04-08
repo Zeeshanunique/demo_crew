@@ -1,4 +1,41 @@
 {
-  "node": {},
+  "node": {
+    "5c9baef32974e821967ca632059b761637dfe148": {
+      "workers": {
+        "app/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/dataset/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/upload/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/dataset/page": "rsc",
+        "app/upload/page": "rsc"
+      }
+    },
+    "a90c49e5ca04369627e49c5671d90bc745ca7c2f": {
+      "workers": {
+        "app/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/dataset/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/upload/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/dataset/page": "rsc",
+        "app/upload/page": "rsc"
+      }
+    },
+    "e5e7df2ab8aa5ef395af36e635ac9153f75e7979": {
+      "workers": {
+        "app/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/dataset/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!",
+        "app/upload/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fworkspaces%2Fdemo_crew%2Ffrontend%2Fnode_modules%2F%40clerk%2Fnextjs%2Fdist%2Fesm%2Fapp-router%2Fkeyless-actions.js%22%2C%5B%22deleteKeylessAction%22%2C%22createOrReadKeylessAction%22%2C%22syncKeylessConfigAction%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/dataset/page": "rsc",
+        "app/upload/page": "rsc"
+      }
+    }
+  },
   "edge": {}
 }

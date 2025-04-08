@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Enable experimental Server Actions feature required by Clerk
+  experimental: {
+    serverActions: true,
+  },
   async rewrites() {
     return [
       {
@@ -11,4 +15,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig

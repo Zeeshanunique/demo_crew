@@ -1,6 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,12 +28,14 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.className} relative overflow-x-hidden`}>
-        {/* Use the client component for interactive elements */}
-        <MainLayout navItems={navItems}>
-          {children}
-        </MainLayout>
-      </body>
+      <ClerkProvider>
+        <body className={`${inter.className} relative overflow-x-hidden`}>
+          {/* Use the client component for interactive elements */}
+          <MainLayout navItems={navItems}>
+            {children}
+          </MainLayout>
+        </body>
+      </ClerkProvider>
     </html>
   )
 }
